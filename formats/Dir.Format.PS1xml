@@ -1,0 +1,69 @@
+<Configuration>
+  <ViewDefinitions>
+    <View>
+      <Name>DirectoryView</Name>
+      <ViewSelectedBy>
+        <TypeName>System.IO.DirectoryInfo</TypeName>
+        <TypeName>System.IO.FileInfo</TypeName>
+      </ViewSelectedBy>
+      <TableControl>
+        <TableHeaders>
+          <TableColumnHeader>
+            <Label>Mode</Label>
+            <Width>7</Width>
+            <Alignment>left</Alignment>
+          </TableColumnHeader>
+          <TableColumnHeader>
+            <Label>LastWriteTime</Label>
+            <Width>22</Width>
+            <Alignment>right</Alignment>
+          </TableColumnHeader>
+          <TableColumnHeader>
+            <Label>Length</Label>
+            <Width>20</Width>
+            <Alignment>right</Alignment>
+          </TableColumnHeader>
+          <TableColumnHeader>
+            <Label>Name</Label>
+            <Width>25</Width>
+            <Alignment>left</Alignment>
+          </TableColumnHeader>
+        </TableHeaders>
+        <TableRowEntries>
+          <TableRowEntry>
+            <TableColumnItems>
+              <TableColumnItem>
+                <PropertyName>Mode</PropertyName>
+              </TableColumnItem>
+              <TableColumnItem>
+                <PropertyName>LastWriteTime</PropertyName>
+              </TableColumnItem>
+              <TableColumnItem>
+                <ScriptBlock>
+                if(!$_.PSIsContainer){
+                    switch($_.length) {
+                        { $_ -gt 1tb } 
+                        { "{0:n1} T" -f ($_ / 1TB) }
+                        { $_ -gt 1gb } 
+                        { "{0:n1} G" -f ($_ / 1GB) }
+                        { $_ -gt 1mb } 
+                        { "{0:n1} M " -f ($_ / 1MB) }
+                        { $_ -gt 1kb } 
+                        { "{0:n1} K " -f ($_ / 1KB) }
+                        default  
+                        { "{0:n1} B " -f $_} 
+                    }
+                }
+                else {"&lt;DIR&gt;"}
+                </ScriptBlock>
+              </TableColumnItem>
+              <TableColumnItem>
+                <PropertyName>Name</PropertyName>
+              </TableColumnItem>
+            </TableColumnItems>
+          </TableRowEntry>
+        </TableRowEntries>
+      </TableControl>
+    </View>
+  </ViewDefinitions>
+</Configuration>

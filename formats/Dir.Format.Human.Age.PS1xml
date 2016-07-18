@@ -1,0 +1,83 @@
+<Configuration>
+  <ViewDefinitions>
+    <View>
+      <Name>DirectoryView</Name>
+      <ViewSelectedBy>
+        <TypeName>System.IO.DirectoryInfo</TypeName>
+        <TypeName>System.IO.FileInfo</TypeName>
+      </ViewSelectedBy>
+      <TableControl>
+        <TableHeaders>
+          <TableColumnHeader>
+            <Label>Mode</Label>
+            <Width>7</Width>
+            <Alignment>left</Alignment>
+          </TableColumnHeader>
+          <TableColumnHeader>
+            <Label>LastWriteTime</Label>
+            <Width>19</Width>
+            <Alignment>left</Alignment>
+          </TableColumnHeader>
+          <TableColumnHeader>
+            <Label>Length</Label>
+            <Width>10</Width>
+            <Alignment>right</Alignment>
+          </TableColumnHeader>
+          <TableColumnHeader>
+            <Label>Name</Label>
+            <Width>25</Width>
+            <Alignment>left</Alignment>
+          </TableColumnHeader>
+          <TableColumnHeader>
+            <Label>Age</Label>
+            <Width>8</Width>
+            <Alignment>right</Alignment>
+          </TableColumnHeader>
+        </TableHeaders>
+        <TableRowEntries>
+          <TableRowEntry>
+            <TableColumnItems>
+              <TableColumnItem>
+                <PropertyName>Mode</PropertyName>
+              </TableColumnItem>
+              <TableColumnItem>
+                <PropertyName>LastWriteTime</PropertyName>
+              </TableColumnItem>
+              <TableColumnItem>
+                <ScriptBlock>
+                if(!$_.PSIsContainer){
+                    switch($_.length) {
+                        { $_ -gt 1tb } 
+                        { "{0:n1} T" -f ($_ / 1tb) }
+                        { $_ -gt 1gb } 
+                        { "{0:n1} G" -f ($_ / 1gb) }
+                        { $_ -gt 1mb } 
+                        { "{0:n1} M " -f ($_ / 1mb) }
+                        { $_ -gt 1kb } 
+                        { "{0:n1} K " -f ($_ / 1Kb) }
+                        default  
+                        { "{0:n1} B " -f $_} 
+                    }}
+                else {"&lt;DIR&gt;"}
+                </ScriptBlock>
+              </TableColumnItem>
+              <TableColumnItem>
+                <PropertyName>Name</PropertyName>
+              </TableColumnItem>
+              <TableColumnItem>
+                <ScriptBlock>
+                  $fileAge = New-TimeSpan $_.lastwritetime $(Get-Date);
+                  if($fileAge.TotalDays -gt 365){[string]::Format("{0:0.00} Y",$fileAge.TotalDays / 365 )}
+                  elseif($fileAge.TotalDays -gt 30){[string]::Format("{0:0.00} M",$fileAge.TotalDays / 30)}
+                  elseif($fileAge.TotalHours -gt 24){[string]::Format("{0:0.00} D",$fileAge.TotalHours / 24)}
+                  elseif($fileAge.TotalMinutes -gt 60){[string]::Format("{0:0.00} H",$fileAge.TotalMinutes / 60)}
+                  else{[string]::Format("{0:0} m",$fileAge.TotalMinutes)}
+                </ScriptBlock>
+              </TableColumnItem>
+            </TableColumnItems>
+          </TableRowEntry>
+        </TableRowEntries>
+      </TableControl>
+    </View>
+  </ViewDefinitions>
+</Configuration>
