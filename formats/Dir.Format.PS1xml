@@ -20,7 +20,7 @@
           </TableColumnHeader>
           <TableColumnHeader>
             <Label>Length</Label>
-            <Width>20</Width>
+            <Width>16</Width>
             <Alignment>right</Alignment>
           </TableColumnHeader>
           <TableColumnHeader>
@@ -53,18 +53,19 @@
                         default
                         { "{0:n1} B " -f $_}
                     }
-                }
-                else {"&lt;DIR&gt;"}
+                } elseif ($_.Attributes -band [IO.FileAttributes]::ReparsePoint) { #links
+                "&lt;SYMLINK&gt; "
+                } else {"&lt;DIR&gt; "}
                 </ScriptBlock>
               </TableColumnItem>
               <TableColumnItem>
                 <ScriptBlock>
                   if ($_.Attributes -band [IO.FileAttributes]::ReparsePoint) { #links
-                    "$_.Name@"
+                    "$_`@"
                   } elseif ($_.PSIsContainer) { #folders
-                    "$_.Name/"
+                    "$_/"
                   } else {
-                    "$_.Name"
+                    "$_"
                   }
                 </ScriptBlock>
               </TableColumnItem>
