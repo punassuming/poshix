@@ -134,13 +134,6 @@ Function Human-FileSize() {
   }
 }
 
-function ls-short { & Get-ChildItem $args | Format-Wide -AutoSize  }
-Set-Alias -Name lss -Value ls-short -Force -Option AllScope
-
-Set-Alias -Name ll -Value gci -Force -Option AllScope
-# Set-Alias -Name ls -Value PowerLS -Force -Option AllScope
-
-# Set-item alias:ls -Value 'PowerLS'
 Set-item alias:ls -Value 'PowerLS'
 
 # Human readable sizes in ls
