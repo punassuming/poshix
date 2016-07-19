@@ -42,23 +42,31 @@
                 <ScriptBlock>
                 if(!$_.PSIsContainer){
                     switch($_.length) {
-                        { $_ -gt 1tb } 
+                        { $_ -gt 1tb }
                         { "{0:n1} T" -f ($_ / 1TB) }
-                        { $_ -gt 1gb } 
+                        { $_ -gt 1gb }
                         { "{0:n1} G" -f ($_ / 1GB) }
-                        { $_ -gt 1mb } 
+                        { $_ -gt 1mb }
                         { "{0:n1} M " -f ($_ / 1MB) }
-                        { $_ -gt 1kb } 
+                        { $_ -gt 1kb }
                         { "{0:n1} K " -f ($_ / 1KB) }
-                        default  
-                        { "{0:n1} B " -f $_} 
+                        default
+                        { "{0:n1} B " -f $_}
                     }
                 }
                 else {"&lt;DIR&gt;"}
                 </ScriptBlock>
               </TableColumnItem>
               <TableColumnItem>
-                <PropertyName>Name</PropertyName>
+                <ScriptBlock>
+                  if ($_.Attributes -band [IO.FileAttributes]::ReparsePoint) { #links
+                    "$_.Name@"
+                  } elseif ($_.PSIsContainer) { #folders
+                    "$_.Name/"
+                  } else {
+                    "$_.Name"
+                  }
+                </ScriptBlock>
               </TableColumnItem>
             </TableColumnItems>
           </TableRowEntry>
