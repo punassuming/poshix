@@ -82,9 +82,10 @@ function PowerLS {
 
     # determine color we should be printing
     # Blue for folders, Green for files, and Gray for hidden files
-    if ($_.Attributes -band [IO.FileAttributes]::ReparsePoint) { #links
-      write-host "$Name" -nonewline -foregroundcolor teal
+    if ($e.Attributes -band [IO.FileAttributes]::ReparsePoint) { #links
+      write-host "$Name" -nonewline -foregroundcolor cyan
       write-host "@  " -nonewline -foregroundcolor white
+    # TODO find redirect link in long listing
     } elseif ($e.PSIsContainer) { #folders
       write-host "$Name" -nonewline -foregroundcolor blue
       write-host "/  " -nonewline -foregroundcolor white
@@ -127,7 +128,7 @@ Function Human-FileSize() {
       default
       { "{0:n1} B " -f $_}
     }
-  } elseif ($_.Attributes -band [IO.FileAttributes]::ReparsePoint) { #links
+  } elseif ($file.Attributes -band [IO.FileAttributes]::ReparsePoint) { #links
     "<SYMLINK> "
   } else { #directory
     "<DIR> "
