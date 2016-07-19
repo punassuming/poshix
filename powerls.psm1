@@ -31,10 +31,10 @@ function PowerLS {
 
   # get all the files and folders
   if ($HiddenFiles) {
-    $Childs = @(Get-ChildItem $lspath) 
+    $Childs = @(Get-ChildItem $lspath | Sort-Object) 
   }
   else {
-    $Childs = @(Get-ChildItem $lspath -Exclude ".*")
+    $Childs = @(Get-ChildItem $lspath | Where-Object {$_.Name -notmatch "^\..*$"} | Sort-Object)
   }
 
   # get the longest string and get the length
