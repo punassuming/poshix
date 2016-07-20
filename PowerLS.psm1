@@ -1,7 +1,8 @@
 <#
   .Synopsis
   Powershell unix-like ls
-  Written by Jesse Jurman (JRJurman)
+  Originally Written by Jesse Jurman (JRJurman)
+  Current Implementation by Rich Alesi (ralesi)
 
   .Description
   A colorful ls
@@ -11,11 +12,11 @@
 
   .Example
   # List the current directory
-  PowerLS
+  posh-ls
 
   .Example
   # List the parent directory
-  PowerLS ../
+  posh-ls ../
 #>
 function PowerLS {
   param(
@@ -33,6 +34,9 @@ function PowerLS {
     [Alias('t')]
     [switch]
     $SortTime = $null,
+    [Alias('U')]
+    [switch]
+    $NoSort = $null,
     [Alias('l')]
     [switch]
     $LongListing = $null,
