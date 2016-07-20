@@ -27,20 +27,27 @@ function PowerLS {
     [Alias('S')]
     [switch]
     $SortSize = $null,
+    [Alias('X')]
+    [switch]
+    $SortExtension = $null,
     [Alias('t')]
     [switch]
     $SortTime = $null,
     [Alias('l')]
     [switch]
-    $LongListing = $null
+    $LongListing = $null,
+    [Alias('la','al')]
+    [switch]
+    $LongAll = $null
   )
+
+  if ($LongAll) {
+    $LongListing = $true
+    $HiddenFiles = $true
+  }
 
   # get the console buffersize
   $BufferWidth = (Get-Host).ui.rawui.buffersize.width
-
-  if ($SortSize -and $SortTime) {
-    write-host "Can only include one sorting parameter."
-  }
 
   # get all the files and folders
   if ($HiddenFiles) {
@@ -54,6 +61,8 @@ function PowerLS {
     $Childs = @($Childs | Sort-Object -property length)
   } elseif ($SortTime) {
     $Childs = @($Childs | Sort-Object -property LastWriteTime)
+  } elseif ($SortExtension) {
+    $Childs = @($Childs | Sort-Object -property Extension)
   } else {
     $Childs = @($Childs | Sort-Object)
   }
