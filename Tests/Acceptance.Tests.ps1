@@ -4,7 +4,7 @@ Describe "Importing" {
     Context "When importing the module" {
         It "Should have no warnings" {
             $warn = $false
-            $out = (powershell -noprofile "Import-Module $ROOT\..\PowerLS.psm1")
+            $out = (powershell -noprofile "Import-Module $ROOT\..\poshix.psm1")
             $out | % { $warn = $warn -or ($_ -Match "WARNING") }
             $warn | Should be $false
         }

@@ -12,13 +12,13 @@
 
   .Example
   # List the current directory
-  posh-ls
+  poshls
 
   .Example
   # List the parent directory
-  posh-ls ../
+  poshls ../
 #>
-function PowerLS {
+function Poshix-Ls {
   param(
     [Parameter(Position=0)]
     [string]$lspath = ".",
@@ -67,9 +67,9 @@ function PowerLS {
     $Childs = @($Childs | Sort-Object -property LastWriteTime)
   } elseif ($SortExtension) {
     $Childs = @($Childs | Sort-Object -property Extension)
-  } else {
+  } elseif (-not $NoSort){
     $Childs = @($Childs | Sort-Object)
-  }
+  } else {}
 
   # get the longest string and get the length
   $LargestLength = ($Childs | % { $_.Name.Length } | Measure-Object -Maximum).Maximum
@@ -148,9 +148,7 @@ Function Human-FileSize() {
   }
 }
 
-Set-item alias:ls -Value 'PowerLS'
+Set-item alias:ls -Value 'Poshix-LS'
 
 # Human readable sizes in ls
 Update-FormatData -pre $PSScriptRoot/formats/Dir.Format.PS1xml
-
-export-modulemember -function PowerLS -alias ls
