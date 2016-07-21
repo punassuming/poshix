@@ -10,7 +10,6 @@
         Set-LocationTo us
         C:\user>
 #>
-
 function Set-LocationTo {
     param([string] $targetDir)
 
@@ -45,3 +44,22 @@ function Set-LocationTo {
 
 Set-Alias -Name cdto -Value Set-LocationTo
 Set-Alias -Name .. -Value Set-LocationTo
+
+function Set-FileLocation {
+  param(
+    [Parameter(Position=0)]
+    [string]$cdPath,
+    [Alias('-')]
+    [switch]
+    $cdBackDir)
+
+  if (-not $cdPath) {
+    Push-Location $env:HOMEPATH
+  } elseif ($cdBackDir) {
+    Pop-Location
+  } else {
+    Push-Location $cdPath
+  }
+}
+
+Set-item alias:cd -Value 'Set-FileLocation'
