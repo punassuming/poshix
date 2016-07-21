@@ -46,19 +46,18 @@ Set-Alias -Name cdto -Value Set-LocationTo
 Set-Alias -Name .. -Value Set-LocationTo
 
 function Set-FileLocation {
-  param(
-    [Parameter(Position=0)]
-    [string]$cdPath,
-    [Alias('-')]
-    [switch]
-    $cdBackDir)
+  param([string]$cdPath)
 
   if (-not $cdPath) {
     Push-Location $env:HOMEPATH
-  } elseif ($cdBackDir) {
+  } elseif ($cdPath -eq "-") {
     Pop-Location
   } else {
     Push-Location $cdPath
+  }
+  # z support
+  if (Get-Command Save-CdCommandHistory -errorAction SilentlyContinue) {
+    Save-CdCommandHistory
   }
 }
 
