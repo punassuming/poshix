@@ -94,17 +94,29 @@ function Poshix-Ls {
     $Name = $e.Name
 
     # determine color we should be printing
-    # Blue for folders, Green for files, and Gray for hidden files
-    if ($e.Attributes -band [IO.FileAttributes]::ReparsePoint) { #links
+    if (($e.Attributes -band [IO.FileAttributes]::ReparsePoint) -and ($e.PSIsContainer)) {
+      # dir links
       write-host "$Name" -nonewline -foregroundcolor cyan
       write-host "@  " -nonewline -foregroundcolor white
-    # TODO find redirect link in long listing
-    } elseif ($e.PSIsContainer) { #folders
+      # TODO find redirect link in long listing
+    } elseif ($e.Attributes -band [IO.FileAttributes]::ReparsePoint) {
+      #links
+      write-host "$Name" -nonewline -foregroundcolor darkgreen
+      write-host "@  " -nonewline -foregroundcolor white
+      # TODO find redirect link in long listing
+    } elseif (($Name -match "^\..*$") -and ($e.PSIsContainer)) {
+      # hidden folders
+      write-host "$Name" -nonewline -foregroundcolor darkcyan
+      write-host "/  " -nonewline -foregroundcolor white
+    } elseif ($e.PSIsContainer) {
+      #folders
       write-host "$Name" -nonewline -foregroundcolor blue
       write-host "/  " -nonewline -foregroundcolor white
-    } elseif ($Name -match "^\..*$") { #hidden files
+    } elseif ($Name -match "^\..*$") {
+      #hidden files
       write-host "$Name   " -nonewline -foregroundcolor darkgray
-    } elseif ($Name -match "\.[^\.]*") { #normal files
+    } elseif ($Name -match "\.[^\.]*") {
+      #normal files
       write-host "$Name   " -nonewline -foregroundcolor green
     } else { #others...
       write-host "$Name   " -nonewline -foregroundcolor white
