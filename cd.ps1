@@ -19,12 +19,12 @@ function Set-LocationTo {
         for($i = 0; $i -le $dirs.Length -2; $i++) {
             $targetPath += $dirs[$i] + '\'
         }
-        Set-Location $targetPath
+        Push-Location $targetPath
         return
     }
 
     for($i = $dirs.Length - 1; $i -ge 0; $i--) {
-        if ($dirs[$i].ToLower().StartsWith($targetDir.ToLower())) {
+        if ($dirs[$i].ToLower().Startswith($targetDir.ToLower())) {
             $targetIndex = $i
             break
         }
@@ -39,26 +39,42 @@ function Set-LocationTo {
        $targetPath += $dirs[$i] + '\'
     }
 
-    Set-Location $targetPath
+    Push-Location $targetPath
+}
+
+function Set-FileLocation($cdPath) {
+  if (-not $cdPath) {
+    Push-Location $env:USERPROFILE
+  } elseif ($cdPath -eq "-") {
+    $currentDirectory = $(Get-Location)
+    $popDirectory = $(Get-Location)
+    $val = 0
+    while (($currentDirectory.Path -eq $popDirectory.Path) -and ($val -ne 10)) {
+      # keep on popping until we change a directory
+      $val++
+      Pop-Location
+      $popDirectory = $(Get-Location)
+    }
+  } else {
+    Try {
+      Push-Location $cdPath -Erroraction Stop
+    } Catch [System.Management.Automation.ItemNotFoundException] { #when item doesn't exist
+      $globPath = $cdPath + "*" -replace '([^\./\\]+)/|\\','$1*/'
+      $cdPossibilities = $(gci "$globPath") | Where-Object {$_.PSisContainer -eq $true}
+      if ($cdPossibilities.length -eq 1) {
+        Push-Location $cdPossibilities.FullName
+      } else {
+        Write-Host "Multiple possibilities existed: $cdPossibilities" -ForegroundColor Red
+      }
+    } Catch {
+      Write-Host $_.Exception.Message -ForegroundColor Red
+    }
+  }
+  # z support
+  Try {
+    Save-CdCommandHistory
+  } catch {}
 }
 
 Set-Alias -Name cdto -Value Set-LocationTo
 Set-Alias -Name .. -Value Set-LocationTo
-
-function Set-FileLocation {
-  param([string]$cdPath)
-
-  if (-not $cdPath) {
-    Push-Location $env:HOMEPATH
-  } elseif ($cdPath -eq "-") {
-    Pop-Location
-  } else {
-    Push-Location $cdPath
-  }
-  # z support
-  if (Get-Command Save-CdCommandHistory -errorAction SilentlyContinue) {
-    Save-CdCommandHistory
-  }
-}
-
-Set-item alias:cd -Value 'Set-FileLocation'
