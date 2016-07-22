@@ -3,9 +3,9 @@ param([switch]$NoVersionWarn = $false)
 # if (Get-Module poshix) { return }
 
 Push-Location $psScriptRoot
-. .\poshix-fileutils.ps1
-. .\poshix-ls.ps1
-. .\poshix-cd.ps1
+. .\fileutils.ps1
+. .\ls.ps1
+. .\cd.ps1
 Pop-Location
 
 if (!$Env:HOME) { $Env:HOME = "$Env:HOMEDRIVE$Env:HOMEPATH" }
