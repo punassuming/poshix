@@ -1,6 +1,6 @@
 
 # Return human readable size of file object
-Function Human-FileSize() {
+Function hfs() {
   Param ($file)
   if(!$file.PSIsContainer) {
     switch($file.length) {
@@ -19,5 +19,11 @@ Function Human-FileSize() {
     "<SYMLINK> "
   } else { #directory
     "<DIR> "
+  }
+}
+
+function dbg ($Message, [Diagnostics.Stopwatch]$Stopwatch) {
+  if($Stopwatch) {
+    Write-Verbose ('{0:00000}:{1}' -f $Stopwatch.ElapsedMilliseconds,$Message) -Verbose # -ForegroundColor Yellow
   }
 }

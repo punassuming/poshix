@@ -89,7 +89,7 @@ function Get-FileListing {
         ([String]::Format("{0,10} {1,8}",`
         $e.LastWriteTime.ToString("d"),`
         $e.LastWriteTime.ToString("HH:mm:ss"))),`
-        $(Human-FileSize($e))) -nonewline
+        $(hfs($e))) -nonewline
     }
     $Name = $e.Name
 
@@ -137,5 +137,3 @@ function Get-FileListing {
     write-host "" # add newline at bottom
   }
 }
-
-Set-item alias:ls -Value 'Get-FileListing'
