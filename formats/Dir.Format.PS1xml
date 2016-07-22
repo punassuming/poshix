@@ -25,7 +25,7 @@
           </TableColumnHeader>
           <TableColumnHeader>
             <Label>Name</Label>
-            <Width>25</Width>
+            <Width>35</Width>
             <Alignment>left</Alignment>
           </TableColumnHeader>
         </TableHeaders>
