@@ -83,7 +83,7 @@ function Get-FileListing {
 
   # for every element, print the line
   if ($LongListing) {
-    Write-Host ("total: {0:n2}K" -f $($($Childs | Measure-Object -property length -sum).sum / 1KB))
+    Write-Host ("total: {0:n2}K" -f $($($Childs | Where-Object -property length | Measure-Object -property length -sum).sum / 1KB))
   }
 
 
