@@ -19,6 +19,7 @@
   poshls ../
 #>
 function Get-FileListing {
+  [CmdletBinding()]
   param(
     [Parameter(Position=0)]
     [string]$lspath = ".",
@@ -44,6 +45,9 @@ function Get-FileListing {
     [switch]
     $LongAll = $null
   )
+
+  # for testing
+  # write-host ($PSCmdlet.MyInvocation | out-string)
 
   if ($LongAll) {
     $LongListing = $true
@@ -82,58 +86,66 @@ function Get-FileListing {
     Write-Host ("total: {0:n2}K" -f $($($Childs | Measure-Object -property length -sum).sum / 1KB))
   }
 
-  foreach ($e in $Childs) {
 
-    if ($LongListing) {
-      write-host ("{0,-6}  {1,22} {2,16} " -f $e.mode,`
-        ([String]::Format("{0,10} {1,8}",`
-        $e.LastWriteTime.ToString("d"),`
-        $e.LastWriteTime.ToString("HH:mm:ss"))),`
-        $(hfs($e))) -nonewline
-    }
-    $Name = $e.Name
+  if ($PSCmdlet.MyInvocation.PipelineLength -gt 1) {
 
-    # determine color we should be printing
-    if (($e.Attributes -band [IO.FileAttributes]::ReparsePoint) -and ($e.PSIsContainer)) {
-      # dir links
-      write-host "$Name" -nonewline -foregroundcolor cyan
-      write-host "@  " -nonewline -foregroundcolor white
-      # TODO find redirect link in long listing
-    } elseif ($e.Attributes -band [IO.FileAttributes]::ReparsePoint) {
-      #links
-      write-host "$Name" -nonewline -foregroundcolor darkgreen
-      write-host "@  " -nonewline -foregroundcolor white
-      # TODO find redirect link in long listing
-    } elseif (($Name -match "^\..*$") -and ($e.PSIsContainer)) {
-      # hidden folders
-      write-host "$Name" -nonewline -foregroundcolor darkcyan
-      write-host "/  " -nonewline -foregroundcolor white
-    } elseif ($e.PSIsContainer) {
-      #folders
-      write-host "$Name" -nonewline -foregroundcolor blue
-      write-host "/  " -nonewline -foregroundcolor white
-    } elseif ($Name -match "^\..*$") {
-      #hidden files
-      write-host "$Name   " -nonewline -foregroundcolor darkgray
-    } elseif ($Name -match "\.[^\.]*") {
-      #normal files
-      write-host "$Name   " -nonewline -foregroundcolor green
-    } else { #others...
-      write-host "$Name   " -nonewline -foregroundcolor white
-    }
-    if ($LongListing) {
-      write-host ""
-    } else {
-      $CurrentColumn += $LargestLength + 3
-      if ( $CurrentColumn + $LargestLength + 3 -ge $BufferWidth ) {
+    return $Childs
+
+  } else {
+
+    foreach ($e in $Childs) {
+
+      if ($LongListing) {
+        write-host ("{0,-6}  {1,22} {2,16} " -f $e.mode,`
+          ([String]::Format("{0,10} {1,8}",`
+          $e.LastWriteTime.ToString("d"),`
+          $e.LastWriteTime.ToString("HH:mm:ss"))),`
+          $(hfs($e))) -nonewline
+      }
+      $Name = $e.Name
+
+      # determine color we should be printing
+      if (($e.Attributes -band [IO.FileAttributes]::ReparsePoint) -and ($e.PSIsContainer)) {
+        # dir links
+        write-host "$Name" -nonewline -foregroundcolor cyan
+        write-host "@  " -nonewline -foregroundcolor white
+        # TODO find redirect link in long listing
+      } elseif ($e.Attributes -band [IO.FileAttributes]::ReparsePoint) {
+        #links
+        write-host "$Name" -nonewline -foregroundcolor darkgreen
+        write-host "@  " -nonewline -foregroundcolor white
+        # TODO find redirect link in long listing
+      } elseif (($Name -match "^\..*$") -and ($e.PSIsContainer)) {
+        # hidden folders
+        write-host "$Name" -nonewline -foregroundcolor darkcyan
+        write-host "/  " -nonewline -foregroundcolor white
+      } elseif ($e.PSIsContainer) {
+        #folders
+        write-host "$Name" -nonewline -foregroundcolor blue
+        write-host "/  " -nonewline -foregroundcolor white
+      } elseif ($Name -match "^\..*$") {
+        #hidden files
+        write-host "$Name   " -nonewline -foregroundcolor darkgray
+      } elseif ($Name -match "\.[^\.]*") {
+        #normal files
+        write-host "$Name   " -nonewline -foregroundcolor green
+      } else { #others...
+        write-host "$Name   " -nonewline -foregroundcolor white
+      }
+      if ($LongListing) {
         write-host ""
-        $CurrentColumn = 0
       } else {
-        write-host -nonewline (" " * ($LargestLength - $Name.length))
+        $CurrentColumn += $LargestLength + 3
+        if ( $CurrentColumn + $LargestLength + 3 -ge $BufferWidth ) {
+          write-host ""
+          $CurrentColumn = 0
+        } else {
+          write-host -nonewline (" " * ($LargestLength - $Name.length))
+        }
       }
     }
-  }
-  if ($CurrentColumn -ne 0) {
-    write-host "" # add newline at bottom
+    if ($CurrentColumn -ne 0) {
+      write-host "" # add newline at bottom
+    }
   }
 }
