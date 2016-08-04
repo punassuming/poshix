@@ -27,3 +27,14 @@ function dbg ($Message, [Diagnostics.Stopwatch]$Stopwatch) {
     Write-Verbose ('{0:00000}:{1}' -f $Stopwatch.ElapsedMilliseconds,$Message) -Verbose # -ForegroundColor Yellow
   }
 }
+
+
+function junctions()
+{
+  $file_target = @(cmd.exe /c dir /A:L)
+  $links = $file_target[5..($file_target.length-3)]
+  if ($links)
+  {
+    Write-host $links
+  }
+}
