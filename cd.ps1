@@ -42,7 +42,10 @@ function Set-LocationTo {
     Push-Location $targetPath
 }
 
-function Set-FileLocation($cdPath) {
+function Set-FileLocation {
+  [CmdletBinding()]
+  param ([string] $cdPath)
+
   if (-not $cdPath) {
     Push-Location $env:USERPROFILE
   } elseif ($cdPath -eq "-") {
@@ -61,10 +64,15 @@ function Set-FileLocation($cdPath) {
     } Catch [System.Management.Automation.ItemNotFoundException] { #when item doesn't exist
       $globPath = $cdPath + "*" -replace '([^\./\\]+)/|\\','$1*/'
       $cdPossibilities = $(gci "$globPath") | Where-Object {$_.PSisContainer -eq $true}
-      if ($cdPossibilities.length -eq 1) {
+      if ($cdPossibilities.length -eq 0) {
+        Write-Host "No fuzzy matches found" -foregroundcolor Blue
+      } elseif ($cdPossibilities.length -eq 1) {
         Push-Location $cdPossibilities.FullName
       } else {
-        Write-Host "Multiple possibilities existed: $cdPossibilities" -ForegroundColor Red
+        Write-Host "Multiple fuzzy matches found: [$($cdPossibilities.length)]" -foregroundcolor Blue
+        foreach ($f in $cdPossibilities) {
+          Write-Verbose $f.FullName
+        }
       }
     } Catch {
       Write-Host $_.Exception.Message -ForegroundColor Red
