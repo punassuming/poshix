@@ -82,8 +82,11 @@ function Get-FileListing {
   $CurrentColumn = 0
 
   # for every element, print the line
+
+  $jlist = $null
   if ($LongListing) {
     Write-Host ("total: {0:n2}K" -f $($($Childs | Where-Object -property length | Measure-Object -property length -sum).sum / 1KB))
+    $jlist = junctions
   }
 
 
@@ -104,17 +107,28 @@ function Get-FileListing {
       }
       $Name = $e.Name
 
+      $target = $null
+
+      foreach ($j in $jlist) {
+        if ($j[0] -eq $e.Name) {
+          $target = $j[1]
+        }
+      }
       # determine color we should be printing
       if (($e.Attributes -band [IO.FileAttributes]::ReparsePoint) -and ($e.PSIsContainer)) {
         # dir links
         write-host "$Name" -nonewline -foregroundcolor cyan
         write-host "@  " -nonewline -foregroundcolor white
-        # TODO find redirect link in long listing
+        if ($target) {
+          write-host "-> $target" -nonewline -foregroundcolor yellow
+        }
       } elseif ($e.Attributes -band [IO.FileAttributes]::ReparsePoint) {
         #links
         write-host "$Name" -nonewline -foregroundcolor darkgreen
         write-host "@  " -nonewline -foregroundcolor white
-        # TODO find redirect link in long listing
+        if ($target) {
+          write-host "-> $target" -nonewline -foregroundcolor yellow
+        }
       } elseif (($Name -match "^\..*$") -and ($e.PSIsContainer)) {
         # hidden folders
         write-host "$Name" -nonewline -foregroundcolor darkcyan
