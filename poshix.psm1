@@ -35,10 +35,12 @@ Export-ModuleMember `
   -Alias @(
     'ls',
     'cd',
+    'gls',
     '..',
     'cdto'
   ) -Function @(
     'Get-FileListing',
     'Set-FileLocation',
+    'Get-LocationStack',
     'Set-LocationTo'
   )

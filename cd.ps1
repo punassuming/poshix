@@ -48,15 +48,24 @@ function Set-FileLocation {
 
   if (-not $cdPath) {
     Push-Location $env:USERPROFILE
-  } elseif ($cdPath -eq "-") {
+  } elseif ($cdPath -match "^-") {
     $currentDirectory = $(Get-Location)
     $popDirectory = $(Get-Location)
+    [int]$iter = 1
+    write-host $cdPath
+    if ($cdPath -eq "-") {
+      $iter = 1
+    } else {
+      [int]$iter = [convert]::ToInt32($cdPath[1])
+    }
     $val = 0
-    while (($currentDirectory.Path -eq $popDirectory.Path) -and ($val -ne 10)) {
+    while (($currentDirectory.Path -eq $popDirectory.Path) -and ($iter -gt 0) -and ($val -ne 10)) {
       # keep on popping until we change a directory
+      $iter--
       $val++
       Pop-Location
       $popDirectory = $(Get-Location)
+      # write-host $popDirectory
     }
   } else {
     Try {
@@ -86,3 +95,9 @@ function Set-FileLocation {
 
 Set-Alias -Name cdto -Value Set-LocationTo
 Set-Alias -Name .. -Value Set-LocationTo
+
+function Get-LocationStack {
+  Get-Location -Stack
+}
+
+Set-Alias -Name gls -Value Get-LocationStack
