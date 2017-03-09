@@ -46,8 +46,10 @@ function Set-FileLocation {
   [CmdletBinding()]
   param ([string] $cdPath)
 
+  $destination = $null
+
   if (-not $cdPath) {
-    Push-Location $env:USERPROFILE
+    $destination = $env:USERPROFILE
   } elseif ($cdPath -match "^-") {
     $currentDirectory = $(Get-Location)
     $popDirectory = $(Get-Location)
@@ -68,29 +70,33 @@ function Set-FileLocation {
       # write-host $popDirectory
     }
   } else {
-    Try {
-      Push-Location $cdPath -Erroraction Stop
-    } Catch [System.Management.Automation.ItemNotFoundException] { #when item doesn't exist
+    if (Test-Path $cdPath) {
+      $destination = $cdPath
+    } else { #when path doesn't exist
       $globPath = $cdPath + "*" -replace '([^\./\\]+)/|\\','$1*/'
       $cdPossibilities = $(gci "$globPath") | Where-Object {$_.PSisContainer -eq $true}
       if ($cdPossibilities.length -eq 0) {
         Write-Host "No fuzzy matches found" -foregroundcolor Blue
       } elseif ($cdPossibilities.length -eq 1) {
-        Push-Location $cdPossibilities.FullName
+        $destination = $cdPossibilities.FullName
       } else {
         Write-Host "Multiple fuzzy matches found: [$($cdPossibilities.length)]" -foregroundcolor Blue
-        foreach ($f in $cdPossibilities) {
-          Write-Verbose $f.FullName
+        If ($cdPossibilities.length -lt 6) {
+          $cdPossibilities.FullName | ft
+        } else {
+          Write-Verbose $cdPossibilities.FullName
         }
       }
-    } Catch {
-      Write-Host $_.Exception.Message -ForegroundColor Red
     }
   }
-  # z support
-  Try {
-    Save-CdCommandHistory
-  } catch {}
+  if ($destination -ne $null) {
+    # z.psm1 support 
+    if (Get-Command cdX -errorAction SilentlyContinue) {
+      cdX $destination
+    } else {
+      Push-Location $destination
+    }
+  }
 }
 
 Set-Alias -Name cdto -Value Set-LocationTo
