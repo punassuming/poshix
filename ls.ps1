@@ -115,7 +115,7 @@ function Get-FileListing {
         }
       }
       # determine color we should be printing
-      if (($e.Attributes -band [IO.FileAttributes]::ReparsePoint) -and ($e.PSIsContainer)) {
+      if (($e.Attributes -band [IO.FileAttributes]::ReparsePoint) -and ($e -is [System.IO.DirectoryInfo])) {
         # dir links
         write-host "$Name" -nonewline -foregroundcolor cyan
         write-host "@  " -nonewline -foregroundcolor white
@@ -129,11 +129,11 @@ function Get-FileListing {
         if ($target) {
           write-host "-> $target" -nonewline -foregroundcolor yellow
         }
-      } elseif (($Name -match "^\..*$") -and ($e.PSIsContainer)) {
+      } elseif (($Name -match "^\..*$") -and ($e -is [System.IO.DirectoryInfo])) {
         # hidden folders
         write-host "$Name" -nonewline -foregroundcolor darkcyan
         write-host "/  " -nonewline -foregroundcolor white
-      } elseif ($e.PSIsContainer) {
+      } elseif ($e -is [System.IO.DirectoryInfo]) {
         #folders
         write-host "$Name" -nonewline -foregroundcolor blue
         write-host "/  " -nonewline -foregroundcolor white
