@@ -74,7 +74,7 @@ function Set-FileLocation {
       $destination = $cdPath
     } else { #when path doesn't exist
       $globPath = $cdPath + "*" -replace '([^\./\\]+)/|\\','$1*/'
-      $cdPossibilities = $(gci "$globPath") | Where-Object {$_.PSisContainer -eq $true}
+      $cdPossibilities = $(gci "$globPath") | Where-Object {$_ -is [System.IO.DirectoryInfo]}
       if ($cdPossibilities.length -eq 0) {
         Write-Host "No fuzzy matches found" -foregroundcolor Blue
       } elseif ($cdPossibilities.length -eq 1) {

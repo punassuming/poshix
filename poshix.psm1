@@ -18,8 +18,20 @@ Update-FormatData -pre $PSScriptRoot/formats/Dir.Format.PS1xml
 
 
 # Saving Previous alias
-$orig_cd = (Get-Alias -Name 'cd').Definition
-$orig_ls = (Get-Alias -Name 'ls').Definition
+$orig_cd = $null
+$orig_ls = $null
+try {
+  $orig_cd = (Get-Alias -Name 'cd' -ErrorAction Stop).Definition
+} catch {
+  # cd alias doesn't exist, use default
+  $orig_cd = 'Set-Location'
+}
+try {
+  $orig_ls = (Get-Alias -Name 'ls' -ErrorAction Stop).Definition
+} catch {
+  # ls alias doesn't exist, use default
+  $orig_ls = 'Get-ChildItem'
+}
 
 $MyInvocation.MyCommand.ScriptBlock.Module.OnRemove = {
   set-item alias:cd -value $orig_cd

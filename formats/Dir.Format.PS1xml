@@ -40,7 +40,7 @@
               </TableColumnItem>
               <TableColumnItem>
                 <ScriptBlock>
-                if(!$_.PSIsContainer){
+                if($_ -is [System.IO.FileInfo]){
                     switch($_.length) {
                         {$_ -gt 1tb}
                         { "{0:n1} T " -f ($_ / 1TB); continue }
@@ -62,7 +62,7 @@
                 <ScriptBlock>
                   if ($_.Attributes -band [IO.FileAttributes]::ReparsePoint) { #links
                     "$_`@"
-                  } elseif ($_.PSIsContainer) { #folders
+                  } elseif ($_ -is [System.IO.DirectoryInfo]) { #folders
                     "$_/"
                   } else {
                     "$_"

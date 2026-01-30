@@ -2,7 +2,7 @@
 # Return human readable size of file object
 Function hfs() {
   Param ($file)
-  if(!$file.PSIsContainer) {
+  if($file -is [System.IO.FileInfo]) {
     switch($file.length) {
       {$_ -gt 1tb}
       { "{0:n1} T " -f ($_ / 1TB); continue }
