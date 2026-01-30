@@ -31,16 +31,21 @@ function dbg ($Message, [Diagnostics.Stopwatch]$Stopwatch) {
 
 function junctions()
 {
-  $file_target = @(cmd.exe /c dir /A:L) 2> $null
-  if ($file_target.length -gt 6) {
-    $links = $file_target[5..($file_target.length-3)]
-    $link_targets = @()
-    foreach ($link in $links)
-    {
-      $regex_pat = ".*>\s+(.+) \[(.+)\]"
-      $pair = @([regex]::matches($link, $regex_pat).groups[1..2]|%{$_.value})
-      $link_targets += @(,$pair)
+  # Check if we're on Windows before using cmd.exe
+  if ($IsWindows -or $env:OS -match "Windows") {
+    $file_target = @(cmd.exe /c dir /A:L) 2> $null
+    if ($file_target.length -gt 6) {
+      $links = $file_target[5..($file_target.length-3)]
+      $link_targets = @()
+      foreach ($link in $links)
+      {
+        $regex_pat = ".*>\s+(.+) \[(.+)\]"
+        $pair = @([regex]::matches($link, $regex_pat).groups[1..2]|%{$_.value})
+        $link_targets += @(,$pair)
+      }
+      return $link_targets
     }
-    return $link_targets
   }
+  # On non-Windows systems, return empty array
+  return @()
 }
