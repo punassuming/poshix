@@ -55,8 +55,8 @@ Colored output with extensive file type detection:
 Enhanced command history integration with PowerShell's built-in history:
 
 ### Commands
-- `h` or `Get-PoshixHistory` - View command history
-- `r <id>` or `Invoke-PoshixHistory <id>` - Re-run a command from history
+- `histls` or `Get-PoshixHistory` - View command history
+- `rinvoke <id>` or `Invoke-PoshixHistory <id>` - Re-run a command from history
 - `hgrep <pattern>` or `Search-PoshixHistory <pattern>` - Search history
 - `Clear-PoshixHistory` - Clear history
 - `Export-PoshixHistory` - Save history to file
@@ -98,9 +98,11 @@ which ls                     # Find ls command (shows alias)
 ### pwd
 Enhanced print working directory
 ```powershell
-pwd                          # Show current directory
-pwd -Physical                # Show physical path (resolve symlinks)
+poshpwd                      # Show current directory
+Get-WorkingDirectory -Physical  # Show physical path (resolve symlinks)
 ```
+
+**Note:** The standard `pwd` alias is preserved to maintain PowerShell compatibility. Use `poshpwd` for the enhanced version.
 
 ### clear
 Clear the screen (unified clear/cls)

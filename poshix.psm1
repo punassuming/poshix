@@ -62,9 +62,13 @@ $MyInvocation.MyCommand.ScriptBlock.Module.OnRemove = {
   set-item alias:cd -value $orig_cd -ErrorAction SilentlyContinue
   set-item alias:ls -value $orig_ls -ErrorAction SilentlyContinue
   # Export history on module removal if configured
-  $config = Get-PoshixConfig
-  if ($config.History.SavePath) {
-    Export-PoshixHistory -Path $config.History.SavePath
+  try {
+    $config = Get-PoshixConfig
+    if ($config.History.SavePath) {
+      Export-PoshixHistory -Path $config.History.SavePath
+    }
+  } catch {
+    # Silently continue if config not available during removal
   }
 }
 
@@ -74,12 +78,20 @@ Set-item alias:cd -Value 'Set-FileLocation'
 Set-item alias:ls -Value 'Get-FileListing'
 
 # Load user configuration if it exists
-Import-PoshixConfig
+try {
+    Import-PoshixConfig
+} catch {
+    Write-Warning "Failed to import configuration: $_"
+}
 
 # Load history if configured
-$config = Get-PoshixConfig
-if ($config.Startup.LoadHistory) {
-    Import-PoshixHistory -Path $config.History.SavePath
+try {
+    $config = Get-PoshixConfig
+    if ($config -and $config.Startup -and $config.Startup.LoadHistory) {
+        Import-PoshixHistory -Path $config.History.SavePath
+    }
+} catch {
+    # Silently continue if history loading fails
 }
 
 Export-ModuleMember `
@@ -89,14 +101,14 @@ Export-ModuleMember `
     'gls',
     '..',
     'cdto',
-    'h',
-    'r',
+    'histls',
+    'rinvoke',
     'hgrep',
     'find',
     'grep',
     'touch',
     'which',
-    'pwd',
+    'poshpwd',
     'clear'
   ) -Function @(
     'Get-FileListing',

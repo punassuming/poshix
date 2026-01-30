@@ -228,5 +228,6 @@ Set-Alias -Name find -Value Find-Files
 Set-Alias -Name grep -Value Find-InFiles
 Set-Alias -Name touch -Value New-File
 Set-Alias -Name which -Value Get-CommandPath
-Set-Alias -Name pwd -Value Get-WorkingDirectory -Force
+# Note: pwd is a built-in PowerShell alias, using poshpwd to avoid conflicts
+Set-Alias -Name poshpwd -Value Get-WorkingDirectory
 Set-Alias -Name clear -Value Clear-Screen

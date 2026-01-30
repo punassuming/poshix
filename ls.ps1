@@ -92,6 +92,22 @@ function Get-FileListing {
     $jlist = junctions
   }
 
+  # Get color configuration once for efficiency
+  $config = Get-PoshixConfig
+  $colors = $config.Colors
+  $fileTypes = $config.FileTypes
+  
+  # Build extension to color lookup for O(1) performance
+  $extToColor = @{}
+  foreach ($type in $fileTypes.Keys) {
+    $colorKey = "${type}File"
+    if ($colors.ContainsKey($colorKey)) {
+      foreach ($ext in $fileTypes[$type]) {
+        $extToColor[$ext] = $colors[$colorKey]
+      }
+    }
+  }
+
 
   if ($PSCmdlet.MyInvocation.PipelineLength -gt 1) {
 
@@ -117,11 +133,6 @@ function Get-FileListing {
           $target = $j[1]
         }
       }
-      
-      # Get color configuration
-      $config = Get-PoshixConfig
-      $colors = $config.Colors
-      $fileTypes = $config.FileTypes
       
       # Determine file type and color
       $color = 'White'
@@ -149,19 +160,11 @@ function Get-FileListing {
         # hidden files
         $color = $colors.HiddenFile
       } else {
-        # Determine file type by extension
+        # Determine file type by extension using lookup table
         $ext = $e.Extension.ToLower()
-        $fileType = $null
         
-        foreach ($type in $fileTypes.Keys) {
-          if ($fileTypes[$type] -contains $ext) {
-            $fileType = $type
-            break
-          }
-        }
-        
-        if ($fileType -and $colors.ContainsKey("${fileType}File")) {
-          $color = $colors["${fileType}File"]
+        if ($extToColor.ContainsKey($ext)) {
+          $color = $extToColor[$ext]
         } elseif ($ext) {
           $color = $colors.File
         } else {

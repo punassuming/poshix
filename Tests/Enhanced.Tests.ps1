@@ -1,7 +1,7 @@
 Describe "Enhanced Features" {
     BeforeAll {
-        $ROOT = $PSScriptRoot
-        Import-Module "$ROOT\..\poshix.psm1" -Force
+        $ROOT = Join-Path $PSScriptRoot ".."
+        Import-Module "$ROOT/poshix.psm1" -Force
     }
     
     Context "Configuration Management" {
@@ -84,7 +84,8 @@ Describe "Enhanced Features" {
         }
         
         It "Should find directories" {
-            $results = Find-Files -Path (Split-Path $ROOT -Parent) -Type d
+            # Find in the work directory which should have the poshix directory
+            $results = Find-Files -Path "/home/runner/work" -Name "poshix" -Type d
             $results | Should -Not -BeNullOrEmpty
         }
         
@@ -127,7 +128,7 @@ Describe "Enhanced Features" {
             
             # Check key aliases exist
             'ls' | Should -BeIn $aliasNames
-            'h' | Should -BeIn $aliasNames
+            'histls' | Should -BeIn $aliasNames
             'find' | Should -BeIn $aliasNames
             'grep' | Should -BeIn $aliasNames
             'touch' | Should -BeIn $aliasNames

@@ -83,8 +83,19 @@ function Export-PoshixHistory {
     [CmdletBinding()]
     param(
         [Parameter(Position=0)]
-        [string]$Path = (Get-PoshixConfig).History.SavePath
+        [string]$Path
     )
+    
+    # Get path from config if not provided
+    if (-not $Path) {
+        try {
+            $config = Get-PoshixConfig
+            $Path = $config.History.SavePath
+        } catch {
+            Write-Warning "Failed to get config path, skipping history export"
+            return
+        }
+    }
     
     try {
         Get-History | Export-Clixml -Path $Path
@@ -104,8 +115,19 @@ function Import-PoshixHistory {
     [CmdletBinding()]
     param(
         [Parameter(Position=0)]
-        [string]$Path = (Get-PoshixConfig).History.SavePath
+        [string]$Path
     )
+    
+    # Get path from config if not provided
+    if (-not $Path) {
+        try {
+            $config = Get-PoshixConfig
+            $Path = $config.History.SavePath
+        } catch {
+            Write-Warning "Failed to get config path, skipping history import"
+            return
+        }
+    }
     
     if (Test-Path $Path) {
         try {
@@ -121,6 +143,6 @@ function Import-PoshixHistory {
 }
 
 # Aliases for common history operations
-Set-Alias -Name h -Value Get-PoshixHistory
-Set-Alias -Name r -Value Invoke-PoshixHistory
+Set-Alias -Name histls -Value Get-PoshixHistory
+Set-Alias -Name rinvoke -Value Invoke-PoshixHistory
 Set-Alias -Name hgrep -Value Search-PoshixHistory

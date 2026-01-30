@@ -32,7 +32,10 @@ function dbg ($Message, [Diagnostics.Stopwatch]$Stopwatch) {
 function junctions()
 {
   # Check if we're on Windows before using cmd.exe
-  if ($IsWindows -or $env:OS -match "Windows") {
+  # Use $IsWindows which is available in PowerShell Core 6+
+  $isWindowsOS = if ($PSVersionTable.PSVersion.Major -ge 6) { $IsWindows } else { $true }
+  
+  if ($isWindowsOS) {
     $file_target = @(cmd.exe /c dir /A:L) 2> $null
     if ($file_target.length -gt 6) {
       $links = $file_target[5..($file_target.length-3)]
