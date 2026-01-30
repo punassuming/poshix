@@ -43,7 +43,10 @@ function Get-FileListing {
     $LongListing = $null,
     [Alias('la','al')]
     [switch]
-    $LongAll = $null
+    $LongAll = $null,
+    [Parameter()]
+    [switch]
+    $NoColor = $null
   )
 
   # for testing
@@ -89,6 +92,22 @@ function Get-FileListing {
     $jlist = junctions
   }
 
+  # Get color configuration once for efficiency
+  $config = Get-PoshixConfig
+  $colors = $config.Colors
+  $fileTypes = $config.FileTypes
+  
+  # Build extension to color lookup for O(1) performance
+  $extToColor = @{}
+  foreach ($type in $fileTypes.Keys) {
+    $colorKey = "${type}File"
+    if ($colors.ContainsKey($colorKey)) {
+      foreach ($ext in $fileTypes[$type]) {
+        $extToColor[$ext] = $colors[$colorKey]
+      }
+    }
+  }
+
 
   if ($PSCmdlet.MyInvocation.PipelineLength -gt 1) {
 
@@ -114,37 +133,52 @@ function Get-FileListing {
           $target = $j[1]
         }
       }
-      # determine color we should be printing
-      if (($e.Attributes -band [IO.FileAttributes]::ReparsePoint) -and ($e -is [System.IO.DirectoryInfo])) {
+      
+      # Determine file type and color
+      $color = 'White'
+      $suffix = '   '
+      
+      if ($NoColor) {
+        $color = 'White'
+      } elseif (($e.Attributes -band [IO.FileAttributes]::ReparsePoint) -and ($e -is [System.IO.DirectoryInfo])) {
         # dir links
-        write-host "$Name" -nonewline -foregroundcolor cyan
-        write-host "@  " -nonewline -foregroundcolor white
-        if ($target) {
-          write-host "-> $target" -nonewline -foregroundcolor yellow
-        }
+        $color = $colors.Symlink
+        $suffix = '@  '
       } elseif ($e.Attributes -band [IO.FileAttributes]::ReparsePoint) {
-        #links
-        write-host "$Name" -nonewline -foregroundcolor darkgreen
-        write-host "@  " -nonewline -foregroundcolor white
-        if ($target) {
-          write-host "-> $target" -nonewline -foregroundcolor yellow
-        }
+        # file links
+        $color = $colors.FileSymlink
+        $suffix = '@  '
       } elseif (($Name -match "^\..*$") -and ($e -is [System.IO.DirectoryInfo])) {
         # hidden folders
-        write-host "$Name" -nonewline -foregroundcolor darkcyan
-        write-host "/  " -nonewline -foregroundcolor white
+        $color = $colors.HiddenDirectory
+        $suffix = '/  '
       } elseif ($e -is [System.IO.DirectoryInfo]) {
-        #folders
-        write-host "$Name" -nonewline -foregroundcolor blue
-        write-host "/  " -nonewline -foregroundcolor white
+        # folders
+        $color = $colors.Directory
+        $suffix = '/  '
       } elseif ($Name -match "^\..*$") {
-        #hidden files
-        write-host "$Name   " -nonewline -foregroundcolor darkgray
-      } elseif ($Name -match "\.[^\.]*") {
-        #normal files
-        write-host "$Name   " -nonewline -foregroundcolor green
-      } else { #others...
-        write-host "$Name   " -nonewline -foregroundcolor white
+        # hidden files
+        $color = $colors.HiddenFile
+      } else {
+        # Determine file type by extension using lookup table
+        $ext = $e.Extension.ToLower()
+        
+        if ($extToColor.ContainsKey($ext)) {
+          $color = $extToColor[$ext]
+        } elseif ($ext) {
+          $color = $colors.File
+        } else {
+          $color = $colors.FileNoExtension
+        }
+      }
+      
+      # Print with determined color
+      write-host "$Name" -nonewline -foregroundcolor $color
+      write-host $suffix -nonewline -foregroundcolor white
+      
+      # Print symlink target if applicable
+      if ($target) {
+        write-host "-> $target" -nonewline -foregroundcolor yellow
       }
       if ($LongListing) {
         write-host ""
