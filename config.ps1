@@ -47,7 +47,7 @@ $script:PoshixConfig = @{
         LoadHistory = $true
     }
     # Plugin settings
-    Plugins = @()  # List of enabled plugin names, e.g. @('starship', 'git')
+    Plugins = @()  # List of enabled plugin names, e.g. @('starship')
     Theme = $null  # Active theme name (null = no theme / use plugin prompt)
 }
 

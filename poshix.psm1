@@ -99,9 +99,11 @@ try {
     $config = Get-PoshixConfig
     if ($config -and $config.Plugins) {
         foreach ($pluginName in $config.Plugins) {
+            # Use $HOME for cross-platform compatibility
+            $userPluginsBase = if ($env:HOME) { $env:HOME } else { $env:USERPROFILE }
             $pluginPaths = @(
                 (Join-Path $PSScriptRoot "plugins/$pluginName/$pluginName.plugin.ps1"),
-                (Join-Path $env:USERPROFILE ".poshix/plugins/$pluginName/$pluginName.plugin.ps1")
+                (Join-Path $userPluginsBase ".poshix/plugins/$pluginName/$pluginName.plugin.ps1")
             )
             $loaded = $false
             foreach ($pluginPath in $pluginPaths) {

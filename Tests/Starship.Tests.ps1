@@ -17,8 +17,23 @@ Describe "Starship Plugin" {
         It "Should source without errors when starship is not installed" {
             # Mock the missing command scenario
             $env:POSHIX_PROMPT = $null
-            # Plugin should warn but not throw
+            
+            # Capture warnings by redirecting Warning stream
+            $warnings = @()
+            $null = . (Join-Path $ROOT "plugins/starship/starship.plugin.ps1") 3>&1 | ForEach-Object { $warnings += $_ }
+            
+            # Should not throw
             { . (Join-Path $ROOT "plugins/starship/starship.plugin.ps1") } | Should -Not -Throw
+            
+            # Should display a warning message about starship not being found
+            $warningFound = $false
+            foreach ($warn in $warnings) {
+                if ($warn -match 'starship binary not found') {
+                    $warningFound = $true
+                    break
+                }
+            }
+            $warningFound | Should -Be $true
         }
     }
 }
