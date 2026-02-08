@@ -1,5 +1,8 @@
 param([switch]$NoVersionWarn = $false, [switch]$Verbose = $false)
 
+# Store the module root path for use by plugin/theme loaders
+$script:PoshixPath = $PSScriptRoot
+
 # $cdHistory = Join-Path -Path $Env:USERPROFILE -ChildPath '\.cdHistory'
 
 # if (Get-Module poshix) { return }
@@ -13,6 +16,9 @@ try {
     
     # Load configuration system
     . .\config.ps1
+    
+    # Load plugin system
+    . .\lib\plugin-loader.ps1
     
     # Load enhanced commands
     . .\ls.ps1
@@ -94,30 +100,11 @@ try {
     # Silently continue if history loading fails
 }
 
-# Load enabled plugins
+# Load enabled plugins from config
 try {
     $config = Get-PoshixConfig
-    if ($config -and $config.Plugins) {
-        foreach ($pluginName in $config.Plugins) {
-            # Use $HOME for cross-platform compatibility
-            $userPluginsBase = if ($env:HOME) { $env:HOME } else { $env:USERPROFILE }
-            $pluginPaths = @(
-                (Join-Path $PSScriptRoot "plugins/$pluginName/$pluginName.plugin.ps1"),
-                (Join-Path $userPluginsBase ".poshix/plugins/$pluginName/$pluginName.plugin.ps1")
-            )
-            $loaded = $false
-            foreach ($pluginPath in $pluginPaths) {
-                if (Test-Path $pluginPath) {
-                    . $pluginPath
-                    $loaded = $true
-                    Write-Verbose "[poshix] Loaded plugin: $pluginName"
-                    break
-                }
-            }
-            if (-not $loaded) {
-                Write-Warning "[poshix] Plugin '$pluginName' not found"
-            }
-        }
+    if ($config -and $config.Plugins -and $config.Plugins.Count -gt 0) {
+        Import-PoshixPlugin -Name $config.Plugins
     }
 } catch {
     Write-Warning "Failed to load plugins: $_"
@@ -160,5 +147,8 @@ Export-ModuleMember `
     'New-File',
     'Get-CommandPath',
     'Get-WorkingDirectory',
-    'Clear-Screen'
+    'Clear-Screen',
+    'Import-PoshixPlugin',
+    'Remove-PoshixPlugin',
+    'Get-PoshixPlugin'
   )

@@ -134,6 +134,121 @@ Save-PoshixConfig  # Save to disk
 Reset-PoshixConfig
 ```
 
+## Plugins
+
+Poshix supports a convention-based plugin system inspired by [Oh My Zsh](https://github.com/ohmyzsh/ohmyzsh) and [Oh My Fish](https://github.com/oh-my-fish/oh-my-fish). Plugins extend poshix functionality without modifying the core module.
+
+### Plugin Convention
+
+Each plugin follows a simple directory structure:
+
+```
+plugins/
+  <plugin-name>/
+    <plugin-name>.plugin.ps1    # Required: Main entry point, dot-sourced on load
+    completions/                 # Optional: Tab completion scripts, auto-registered
+      *.ps1
+    README.md                   # Recommended: Documentation
+    plugin.json                 # Optional: Metadata (description, version, dependencies)
+```
+
+### Enabling Plugins
+
+Plugins can be loaded in two ways:
+
+1. **Configure in your config** (automatically loaded on startup):
+```powershell
+$config = @{
+    Plugins = @('starship', 'git')
+}
+Set-PoshixConfig -Config $config
+Save-PoshixConfig
+```
+
+2. **Load manually in your session**:
+```powershell
+Import-PoshixPlugin -Name 'starship'
+Import-PoshixPlugin -Name 'git','docker'  # Load multiple plugins
+```
+
+### Plugin Locations
+
+Poshix searches for plugins in two locations (in order):
+1. **Custom plugins**: `~/.poshix/plugins/<plugin-name>/`
+2. **Built-in plugins**: `<poshix-root>/plugins/<plugin-name>/`
+
+This allows you to override built-in plugins or create your own.
+
+### Managing Plugins
+
+#### List Plugins
+```powershell
+Get-PoshixPlugin              # Show loaded plugins (default)
+Get-PoshixPlugin -Loaded      # Show only loaded plugins
+Get-PoshixPlugin -Available   # Show all available plugins (built-in and custom)
+```
+
+#### Unload a Plugin
+```powershell
+Remove-PoshixPlugin -Name 'starship'
+```
+
+**Note**: Unloading only removes the plugin from tracking. Functions and aliases defined by the plugin may remain in the session.
+
+#### Reload a Plugin
+```powershell
+Import-PoshixPlugin -Name 'starship' -Force
+```
+
+### Creating Custom Plugins
+
+1. Create your plugin directory structure:
+```powershell
+# For personal plugins
+mkdir ~/.poshix/plugins/myplugin
+New-Item ~/.poshix/plugins/myplugin/myplugin.plugin.ps1
+```
+
+2. Add your plugin logic to `myplugin.plugin.ps1`:
+```powershell
+# myplugin.plugin.ps1
+function Get-MyFeature {
+    Write-Host "My custom feature!"
+}
+
+# Export the function if needed
+Export-ModuleMember -Function 'Get-MyFeature'
+
+# Or create an alias
+Set-Alias myfeat Get-MyFeature
+```
+
+3. Enable your plugin:
+```powershell
+Import-PoshixPlugin -Name 'myplugin'
+```
+
+### Built-in Plugins
+
+#### Starship
+Modern cross-shell prompt with extensive customization.
+
+```powershell
+# Enable in config
+$config = @{ Plugins = @('starship') }
+Set-PoshixConfig -Config $config
+Save-PoshixConfig
+```
+
+Requires [Starship](https://starship.rs) to be installed separately.
+
+### Plugin Auto-Registration Features
+
+When a plugin is loaded, poshix automatically:
+- Dot-sources the main plugin file (`<plugin-name>.plugin.ps1`)
+- Auto-loads any completion scripts from `completions/*.ps1`
+- Tracks the plugin as loaded to prevent duplicate loading
+
 ## Module Usage
 From the root directory, run:
 ```powershell
