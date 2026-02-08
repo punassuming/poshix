@@ -46,6 +46,9 @@ $script:PoshixConfig = @{
         Verbose = $false
         LoadHistory = $true
     }
+    # Plugin settings
+    Plugins = @()  # List of enabled plugin names, e.g. @('starship', 'git')
+    Theme = $null  # Active theme name (null = no theme / use plugin prompt)
 }
 
 # Configuration file path
@@ -177,6 +180,8 @@ function Reset-PoshixConfig {
             Verbose = $false
             LoadHistory = $true
         }
+        Plugins = @()
+        Theme = $null
     }
     Write-Verbose "Configuration reset to defaults"
 }
