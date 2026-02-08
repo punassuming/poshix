@@ -94,6 +94,35 @@ try {
     # Silently continue if history loading fails
 }
 
+# Load enabled plugins
+try {
+    $config = Get-PoshixConfig
+    if ($config -and $config.Plugins) {
+        foreach ($pluginName in $config.Plugins) {
+            # Use $HOME for cross-platform compatibility
+            $userPluginsBase = if ($env:HOME) { $env:HOME } else { $env:USERPROFILE }
+            $pluginPaths = @(
+                (Join-Path $PSScriptRoot "plugins/$pluginName/$pluginName.plugin.ps1"),
+                (Join-Path $userPluginsBase ".poshix/plugins/$pluginName/$pluginName.plugin.ps1")
+            )
+            $loaded = $false
+            foreach ($pluginPath in $pluginPaths) {
+                if (Test-Path $pluginPath) {
+                    . $pluginPath
+                    $loaded = $true
+                    Write-Verbose "[poshix] Loaded plugin: $pluginName"
+                    break
+                }
+            }
+            if (-not $loaded) {
+                Write-Warning "[poshix] Plugin '$pluginName' not found"
+            }
+        }
+    }
+} catch {
+    Write-Warning "Failed to load plugins: $_"
+}
+
 Export-ModuleMember `
   -Alias @(
     'ls',
