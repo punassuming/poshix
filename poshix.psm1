@@ -20,6 +20,9 @@ try {
     # Load plugin system
     . .\lib\plugin-loader.ps1
     
+    # Load prompt engine
+    . .\prompt.ps1
+    
     # Load enhanced commands
     . .\ls.ps1
     . .\cd.ps1
@@ -110,6 +113,13 @@ try {
     Write-Warning "Failed to load plugins: $_"
 }
 
+# Initialize prompt (after plugins so Starship can override if enabled)
+try {
+    Initialize-PoshixPrompt
+} catch {
+    Write-Warning "Failed to initialize prompt: $_"
+}
+
 Export-ModuleMember `
   -Alias @(
     'ls',
@@ -150,5 +160,7 @@ Export-ModuleMember `
     'Clear-Screen',
     'Import-PoshixPlugin',
     'Remove-PoshixPlugin',
-    'Get-PoshixPlugin'
+    'Get-PoshixPlugin',
+    'Get-PoshixPrompt',
+    'Initialize-PoshixPrompt'
   )

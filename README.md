@@ -64,6 +64,83 @@ Enhanced command history integration with PowerShell's built-in history:
 
 History is automatically saved on module unload and loaded on startup.
 
+## Prompt Engine
+
+Poshix includes a built-in segment-based prompt engine that displays contextual information in your shell prompt.
+
+### Features
+
+- **Modular segments**: Each piece of information (path, git status, time, etc.) is a separate segment
+- **Colored output**: Each segment can have custom colors
+- **Git integration**: Automatically shows branch and dirty status when in a git repository
+- **Cross-platform**: Works on Windows, Linux, and macOS
+- **Configurable**: Customize which segments to show and their appearance
+- **Plugin-compatible**: Automatically disabled when using Starship or other prompt plugins
+
+### Default Prompt
+
+The default prompt shows:
+- Current directory path (with home directory shortened to `~`)
+- Git branch and status (if in a git repository)
+- Error indicator (if previous command failed)
+- Prompt character (`❯` for normal user, `#` for admin/root)
+
+Example: `~/work/poshix/poshix copilot/implement-segment-based-prompt-engine* ❯`
+
+### Available Segments
+
+- **user**: Current username
+- **host**: Computer/hostname
+- **path**: Current directory (with home shortening and optional length limit)
+- **git**: Git branch and dirty status (`*` when uncommitted changes)
+- **time**: Current time
+- **error**: Error indicator when previous command failed
+- **char**: Prompt character (changes for admin/root)
+
+### Customizing the Prompt
+
+Configure segments via the config system:
+
+```powershell
+$promptConfig = @{
+    Prompt = @{
+        Segments = @(
+            @{ Type = 'user'; Enabled = $true; Color = 'Green' }
+            @{ Type = 'host'; Enabled = $true; Color = 'Cyan' }
+            @{ Type = 'path'; Enabled = $true; Color = 'Blue'; MaxLength = 50 }
+            @{ Type = 'git'; Enabled = $true; Color = 'Green'; DirtyColor = 'Yellow' }
+            @{ Type = 'time'; Enabled = $true; Color = 'DarkGray'; Format = 'HH:mm:ss' }
+            @{ Type = 'error'; Enabled = $true; Color = 'Red'; Character = '✗' }
+            @{ Type = 'char'; Enabled = $true; Color = 'Magenta'; AdminColor = 'Red'; Character = '❯'; AdminCharacter = '#' }
+        )
+        Separator = ' '     # Separator between segments
+        Newline = $false    # If true, prompt character appears on a new line
+    }
+}
+Set-PoshixConfig -Config $promptConfig
+Save-PoshixConfig
+```
+
+### Disabling Segments
+
+To disable a segment, set `Enabled = $false`:
+
+```powershell
+$config = Get-PoshixConfig
+$config.Prompt.Segments[0].Enabled = $false  # Disable first segment
+Set-PoshixConfig -Config $config
+```
+
+### Using with Starship
+
+The native prompt engine automatically defers to Starship if the Starship plugin is enabled:
+
+```powershell
+Import-PoshixPlugin -Name 'starship'
+```
+
+When Starship is active, the native prompt engine remains dormant.
+
 ## Additional Linux-like Commands
 
 ### find
