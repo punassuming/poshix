@@ -32,8 +32,8 @@ function Get-PromptPathSegment {
     $path = Get-Location
     $displayPath = $path.Path
     
-    # Shorten home directory to ~
-    if ($displayPath.StartsWith($env:HOME)) {
+    # Shorten home directory to ~ (case-insensitive for Windows compatibility)
+    if ($displayPath.StartsWith($env:HOME, [StringComparison]::OrdinalIgnoreCase)) {
         $displayPath = "~" + $displayPath.Substring($env:HOME.Length)
     }
     
@@ -41,7 +41,12 @@ function Get-PromptPathSegment {
     if ($Config.MaxLength -and $displayPath.Length -gt $Config.MaxLength) {
         $parts = $displayPath.Split([IO.Path]::DirectorySeparatorChar)
         if ($parts.Count -gt 3) {
-            $displayPath = $parts[0] + [IO.Path]::DirectorySeparatorChar + '...' + [IO.Path]::DirectorySeparatorChar + $parts[-1]
+            # Preserve ~ at the beginning if present
+            if ($parts[0] -eq '~') {
+                $displayPath = '~' + [IO.Path]::DirectorySeparatorChar + '...' + [IO.Path]::DirectorySeparatorChar + $parts[-1]
+            } else {
+                $displayPath = $parts[0] + [IO.Path]::DirectorySeparatorChar + '...' + [IO.Path]::DirectorySeparatorChar + $parts[-1]
+            }
         }
     }
     
