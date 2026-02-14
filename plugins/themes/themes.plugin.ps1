@@ -206,7 +206,14 @@ function Set-WindowsTerminalTheme {
             $colorScheme.background = $Theme.colors.background
             $colorScheme.foreground = $Theme.colors.foreground
             $colorScheme.cursorColor = if ($Theme.colors.cursor) { $Theme.colors.cursor } else { $Theme.colors.foreground }
-            $colorScheme.selectionBackground = if ($Theme.colors.selection) { $Theme.colors.selection } else { "#FFFFFF" }
+            # Use a slightly transparent version of foreground for selection, or white as fallback
+            $colorScheme.selectionBackground = if ($Theme.colors.selection) { 
+                $Theme.colors.selection 
+            } elseif ($Theme.colors.brightBlack) {
+                $Theme.colors.brightBlack
+            } else { 
+                "#404040"  # Neutral gray for better compatibility
+            }
             
             # ANSI colors
             $colorScheme.black = $Theme.colors.black
@@ -244,8 +251,9 @@ function Set-WindowsTerminalTheme {
             }
         }
         
-        # Write settings back
-        $settings | ConvertTo-Json -Depth 100 | Set-Content -Path $settingsPath -Encoding UTF8
+        # Write settings back (use UTF8 with BOM for Windows Terminal compatibility)
+        $json = $settings | ConvertTo-Json -Depth 100
+        [System.IO.File]::WriteAllText($settingsPath, $json, [System.Text.UTF8Encoding]::new($true))
         
         Write-Host "Theme applied to Windows Terminal. Restart terminal to see changes." -ForegroundColor Green
         Write-Host "Backup saved to: $backupPath" -ForegroundColor Gray
@@ -289,7 +297,10 @@ function New-PoshixTheme {
 }
 
 # Make functions global so they're available outside the module
-# This is necessary because they're defined after module parse time
+# This is necessary because they're defined dynamically after module parse time.
+# PowerShell's Export-ModuleMember only exports functions that exist when the script is parsed,
+# not functions defined during execution (like plugin functions loaded at runtime).
+# This is a known limitation of PowerShell's module system when loading code dynamically.
 Set-Item -Path "function:global:Get-PoshixThemes" -Value ${function:Get-PoshixThemes}
 Set-Item -Path "function:global:Get-PoshixTheme" -Value ${function:Get-PoshixTheme}
 Set-Item -Path "function:global:Set-PoshixTheme" -Value ${function:Set-PoshixTheme}

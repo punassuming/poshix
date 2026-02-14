@@ -120,5 +120,7 @@ try {
     Write-Warning "Failed to initialize prompt: $_"
 }
 
-# Note: Not using Export-ModuleMember to allow plugin-defined functions to be exported
+# Note: Not using Export-ModuleMember for functions to allow plugin-defined functions to be exported
 # All functions and aliases will be automatically exported
+# This is necessary because plugins are loaded dynamically after the module script runs,
+# and Export-ModuleMember only exports functions that exist at parse time, not execution time.
