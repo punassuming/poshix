@@ -120,47 +120,5 @@ try {
     Write-Warning "Failed to initialize prompt: $_"
 }
 
-Export-ModuleMember `
-  -Alias @(
-    'ls',
-    'cd',
-    'gls',
-    '..',
-    'cdto',
-    'histls',
-    'rinvoke',
-    'hgrep',
-    'find',
-    'grep',
-    'touch',
-    'which',
-    'poshpwd',
-    'clear'
-  ) -Function @(
-    'Get-FileListing',
-    'Set-FileLocation',
-    'Get-LocationStack',
-    'Set-LocationTo',
-    'Get-PoshixHistory',
-    'Invoke-PoshixHistory',
-    'Search-PoshixHistory',
-    'Clear-PoshixHistory',
-    'Export-PoshixHistory',
-    'Import-PoshixHistory',
-    'Get-PoshixConfig',
-    'Set-PoshixConfig',
-    'Save-PoshixConfig',
-    'Import-PoshixConfig',
-    'Reset-PoshixConfig',
-    'Find-Files',
-    'Find-InFiles',
-    'New-File',
-    'Get-CommandPath',
-    'Get-WorkingDirectory',
-    'Clear-Screen',
-    'Import-PoshixPlugin',
-    'Remove-PoshixPlugin',
-    'Get-PoshixPlugin',
-    'Get-PoshixPrompt',
-    'Initialize-PoshixPrompt'
-  )
+# Note: Not using Export-ModuleMember to allow plugin-defined functions to be exported
+# All functions and aliases will be automatically exported

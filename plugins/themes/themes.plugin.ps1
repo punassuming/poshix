@@ -1,6 +1,15 @@
 # Poshix Themes Plugin
 # Provides theming capabilities with RGB color support and Windows Terminal integration
 
+# Ensure USERPROFILE is set
+if (!$env:USERPROFILE) {
+    if ($env:HOME) {
+        $env:USERPROFILE = $env:HOME
+    } else {
+        $env:USERPROFILE = "$env:HOMEDRIVE$env:HOMEPATH"
+    }
+}
+
 # Theme storage path
 $script:ThemesPath = Join-Path $env:USERPROFILE '.poshix' | Join-Path -ChildPath 'themes'
 $script:BuiltinThemesPath = Join-Path $PSScriptRoot 'themes'
@@ -351,5 +360,11 @@ function New-PoshixTheme {
     Write-Host "Theme '$Name' created at: $themePath" -ForegroundColor Green
 }
 
-# Export functions
-Export-ModuleMember -Function Get-PoshixThemes, Get-PoshixTheme, Set-PoshixTheme, New-PoshixTheme
+# Make functions global so they're available outside the module
+# This is necessary because they're defined after module parse time
+Set-Item -Path "function:global:Get-PoshixThemes" -Value ${function:Get-PoshixThemes}
+Set-Item -Path "function:global:Get-PoshixTheme" -Value ${function:Get-PoshixTheme}
+Set-Item -Path "function:global:Set-PoshixTheme" -Value ${function:Set-PoshixTheme}
+Set-Item -Path "function:global:New-PoshixTheme" -Value ${function:New-PoshixTheme}
+
+Write-Verbose "[poshix] Themes plugin loaded - RGB color support and Windows Terminal integration enabled"
