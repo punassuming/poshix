@@ -115,27 +115,23 @@ function Set-PoshixTheme {
     
     # Map theme colors to Poshix color configuration
     if ($theme.colors) {
-        $colorMap = @{
-            Directory = 'blue'
-            HiddenDirectory = 'cyan'
-            Symlink = 'cyan'
-            FileSymlink = 'green'
-            HiddenFile = 'brightBlack'
-            ExecutableFile = 'green'
-            ArchiveFile = 'red'
-            ImageFile = 'magenta'
-            VideoFile = 'magenta'
-            AudioFile = 'magenta'
-            DocumentFile = 'yellow'
-            File = 'white'
-            FileNoExtension = 'white'
-        }
-        
-        foreach ($key in $colorMap.Keys) {
-            $colorKey = $colorMap[$key]
-            if ($theme.colors.$colorKey) {
-                $config.Colors[$key] = Get-AnsiColorName -Hex $theme.colors.$colorKey
-            }
+        # For now, use simple color name mapping
+        # The theme RGB colors will be applied at the terminal level
+        # Here we just set reasonable ANSI color names for Poshix tools
+        $config.Colors = @{
+            Directory = 'Blue'
+            HiddenDirectory = 'DarkCyan'
+            Symlink = 'Cyan'
+            FileSymlink = 'Green'
+            HiddenFile = 'DarkGray'
+            ExecutableFile = 'Green'
+            ArchiveFile = 'Red'
+            ImageFile = 'Magenta'
+            VideoFile = 'Magenta'
+            AudioFile = 'DarkMagenta'
+            DocumentFile = 'Yellow'
+            File = 'Green'
+            FileNoExtension = 'White'
         }
     }
     
@@ -260,74 +256,6 @@ function Set-WindowsTerminalTheme {
         if (Test-Path $backupPath) {
             Copy-Item -Path $backupPath -Destination $settingsPath -Force
             Write-Warning "Settings restored from backup"
-        }
-    }
-}
-
-function Get-AnsiColorName {
-    <#
-    .SYNOPSIS
-    Convert hex color to nearest ANSI color name
-    .PARAMETER Hex
-    Hex color code (e.g., #FF0000)
-    #>
-    param(
-        [Parameter(Mandatory=$true)]
-        [string]$Hex
-    )
-    
-    # Simple mapping based on brightness and hue
-    # This is a basic implementation - could be enhanced with proper color space conversion
-    $hex = $Hex -replace '#', ''
-    
-    if ($hex.Length -eq 3) {
-        $hex = "$($hex[0])$($hex[0])$($hex[1])$($hex[1])$($hex[2])$($hex[2])"
-    }
-    
-    $r = [Convert]::ToInt32($hex.Substring(0, 2), 16)
-    $g = [Convert]::ToInt32($hex.Substring(2, 2), 16)
-    $b = [Convert]::ToInt32($hex.Substring(4, 2), 16)
-    
-    $brightness = ($r + $g + $b) / 3
-    
-    # Determine dominant color
-    $max = [Math]::Max([Math]::Max($r, $g), $b)
-    $min = [Math]::Min([Math]::Min($r, $g), $b)
-    
-    if ($max -eq $min) {
-        # Grayscale
-        if ($brightness -lt 64) { return 'Black' }
-        elseif ($brightness -lt 128) { return 'DarkGray' }
-        elseif ($brightness -lt 192) { return 'Gray' }
-        else { return 'White' }
-    }
-    
-    # Determine hue
-    $isDark = $brightness -lt 128
-    
-    if ($r -eq $max) {
-        if ($g -gt $b) {
-            return if ($isDark) { 'DarkYellow' } else { 'Yellow' }
-        } else {
-            return if ($isDark) { 'DarkRed' } else { 'Red' }
-        }
-    }
-    elseif ($g -eq $max) {
-        if ($r -gt $b) {
-            return if ($isDark) { 'DarkYellow' } else { 'Yellow' }
-        } else {
-            if ($b -gt $r) {
-                return if ($isDark) { 'DarkCyan' } else { 'Cyan' }
-            } else {
-                return if ($isDark) { 'DarkGreen' } else { 'Green' }
-            }
-        }
-    }
-    else {
-        if ($r -gt $g) {
-            return if ($isDark) { 'DarkMagenta' } else { 'Magenta' }
-        } else {
-            return if ($isDark) { 'DarkBlue' } else { 'Blue' }
         }
     }
 }

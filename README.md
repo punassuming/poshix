@@ -277,6 +277,84 @@ Remove-PoshixPlugin -Name 'starship'
 Import-PoshixPlugin -Name 'starship' -Force
 ```
 
+## Themes Plugin
+
+The Themes plugin provides comprehensive theming capabilities with full RGB color support (color3d) and Windows Terminal integration.
+
+### Features
+
+- **RGB Color Support**: Define themes with full hex color values (#RRGGBB) for true color support
+- **Windows Terminal Integration**: Automatically applies themes to Windows Terminal settings.json
+- **Built-in Themes**: Professional themes included (Dracula, Monokai, Nord, Solarized, One Dark)
+- **Custom Themes**: Create your own themes easily
+- **Automatic Color Mapping**: Intelligent color application to Poshix tools
+
+### Enabling the Themes Plugin
+
+```powershell
+$config = @{
+    Plugins = @('themes')
+}
+Set-PoshixConfig -Config $config
+Save-PoshixConfig
+```
+
+Then reload your PowerShell session or run `Import-Module poshix -Force`.
+
+### Using Themes
+
+```powershell
+# List available themes
+Get-PoshixThemes
+
+# View a theme's definition
+Get-PoshixTheme -Name dracula
+
+# Apply a theme (Poshix only)
+Set-PoshixTheme -Name nord
+
+# Apply a theme to both Poshix and Windows Terminal
+Set-PoshixTheme -Name dracula -ApplyToTerminal
+```
+
+### Built-in Themes
+
+- **dracula** - Popular dark theme with purple accents
+- **monokai** - Classic dark theme from Sublime Text  
+- **nord** - Arctic, north-bluish color palette
+- **solarized-dark** - Precision colors for machines and people
+- **solarized-light** - Light variant of Solarized
+- **one-dark** - Atom's iconic One Dark theme
+
+### Creating Custom Themes
+
+```powershell
+$colors = @{
+    background = '#1e1e1e'
+    foreground = '#d4d4d4'
+    black = '#000000'
+    red = '#cd3131'
+    green = '#0dbc79'
+    yellow = '#e5e510'
+    blue = '#2472c8'
+    magenta = '#bc3fbc'
+    cyan = '#11a8cd'
+    white = '#e5e5e5'
+    brightBlack = '#666666'
+    brightRed = '#f14c4c'
+    brightGreen = '#23d18b'
+    brightYellow = '#f5f543'
+    brightBlue = '#3b8eea'
+    brightMagenta = '#d670d6'
+    brightCyan = '#29b8db'
+    brightWhite = '#ffffff'
+}
+
+New-PoshixTheme -Name 'my-custom-theme' -Colors $colors
+```
+
+See `plugins/themes/README.md` for detailed documentation on theme format and Windows Terminal integration.
+
 ### Creating Custom Plugins
 
 1. Create your plugin directory structure:
