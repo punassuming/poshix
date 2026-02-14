@@ -307,6 +307,38 @@ Import-PoshixPlugin -Name 'myplugin'
 
 ### Built-in Plugins
 
+#### Completions
+Extensive CLI command completion framework for common utilities, inspired by best practices from zsh, fish, and PowerShell ecosystems.
+
+**Supported commands**: git, docker, npm, yarn, kubectl, cargo, pip, dotnet, and poshix commands
+
+```powershell
+# Enable in config
+$config = @{ Plugins = @('completions') }
+Set-PoshixConfig -Config $config
+Save-PoshixConfig
+
+# Or load manually
+Import-PoshixPlugin -Name 'completions'
+```
+
+**Features**:
+- Context-aware completions (subcommands, options, and arguments)
+- Dynamic completions that query live data (git branches, docker containers, kubectl resources)
+- Support for package manager scripts (npm run, yarn scripts from package.json)
+- Built-in completions for poshix commands (cd, ls, find, grep, config, plugins)
+
+**Examples**:
+```powershell
+git co<Tab>          # Suggests: commit, config, checkout
+git commit -<Tab>    # Suggests: -m, --message, -a, --all, --amend, etc.
+docker run -<Tab>    # Suggests: -d, --detach, -i, --interactive, etc.
+kubectl get <Tab>    # Suggests: pods, services, deployments, etc.
+npm run <Tab>        # Suggests scripts from package.json
+```
+
+See [plugins/completions/README.md](plugins/completions/README.md) for detailed documentation.
+
 #### Starship
 Modern cross-shell prompt with extensive customization.
 
