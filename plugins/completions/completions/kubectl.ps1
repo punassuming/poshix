@@ -130,10 +130,15 @@ Register-ArgumentCompleter -CommandName kubectl -ScriptBlock {
                 # Try to complete with actual resource names from cluster
                 try {
                     $namespace = if ($fakeBoundParameters.ContainsKey('namespace')) { $fakeBoundParameters['namespace'] } else { $null }
-                    $namespaceArg = if ($namespace) { "-n $namespace" } else { '' }
                     
-                    $cmd = "kubectl get $resourceType $namespaceArg -o name 2>`$null"
-                    $resources = Invoke-Expression $cmd 2>$null
+                    # Build kubectl arguments array safely
+                    $kubectlArgs = @('get', $resourceType)
+                    if ($namespace) {
+                        $kubectlArgs += @('-n', $namespace)
+                    }
+                    $kubectlArgs += @('-o', 'name')
+                    
+                    $resources = & kubectl $kubectlArgs 2>$null
                     $resources | ForEach-Object { 
                         $name = $_ -replace '^[^/]+/', ''
                         if ($name -like "$wordToComplete*") {

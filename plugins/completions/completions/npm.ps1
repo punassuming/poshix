@@ -1,5 +1,28 @@
 # npm and yarn command completions
 
+# Helper function to get packages from package.json
+function Get-PackageJsonPackages {
+    param([string]$WordToComplete)
+    
+    if (Test-Path 'package.json') {
+        try {
+            $packageJson = Get-Content 'package.json' -Raw | ConvertFrom-Json
+            $packages = @()
+            if ($packageJson.dependencies) {
+                $packages += $packageJson.dependencies.PSObject.Properties.Name
+            }
+            if ($packageJson.devDependencies) {
+                $packages += $packageJson.devDependencies.PSObject.Properties.Name
+            }
+            $packages | Where-Object { $_ -like "$WordToComplete*" } | ForEach-Object {
+                [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterValue', "package: $_")
+            }
+        } catch {
+            # Ignore errors reading package.json
+        }
+    }
+}
+
 $npmSubcommands = @{
     # Package management
     'install' = @('-g', '--global', '--save', '-S', '--save-dev', '-D', '--save-optional', '-O', '--no-save', '--save-exact', '-E', '--save-bundle', '-B', '--force', '-f', '--legacy-peer-deps', '--dry-run', '--package-lock-only')
@@ -155,22 +178,8 @@ Register-ArgumentCompleter -CommandName npm -ScriptBlock {
             }
         }
         # Complete package names for uninstall
-        elseif ($subcommand -in @('uninstall', 'remove', 'rm', 'un') -and (Test-Path 'package.json')) {
-            try {
-                $packageJson = Get-Content 'package.json' -Raw | ConvertFrom-Json
-                $packages = @()
-                if ($packageJson.dependencies) {
-                    $packages += $packageJson.dependencies.PSObject.Properties.Name
-                }
-                if ($packageJson.devDependencies) {
-                    $packages += $packageJson.devDependencies.PSObject.Properties.Name
-                }
-                $packages | Where-Object { $_ -like "$wordToComplete*" } | ForEach-Object {
-                    [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterValue', "package: $_")
-                }
-            } catch {
-                # Ignore errors reading package.json
-            }
+        elseif ($subcommand -in @('uninstall', 'remove', 'rm', 'un')) {
+            Get-PackageJsonPackages -WordToComplete $wordToComplete
         }
     }
 }
@@ -216,22 +225,8 @@ Register-ArgumentCompleter -CommandName yarn -ScriptBlock {
     else {
         $subcommand = if ($tokens.Count -gt 1) { $tokens[1] } else { $null }
         
-        if ($subcommand -in @('remove', 'upgrade', 'why') -and (Test-Path 'package.json')) {
-            try {
-                $packageJson = Get-Content 'package.json' -Raw | ConvertFrom-Json
-                $packages = @()
-                if ($packageJson.dependencies) {
-                    $packages += $packageJson.dependencies.PSObject.Properties.Name
-                }
-                if ($packageJson.devDependencies) {
-                    $packages += $packageJson.devDependencies.PSObject.Properties.Name
-                }
-                $packages | Where-Object { $_ -like "$wordToComplete*" } | ForEach-Object {
-                    [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterValue', "package: $_")
-                }
-            } catch {
-                # Ignore errors reading package.json
-            }
+        if ($subcommand -in @('remove', 'upgrade', 'why')) {
+            Get-PackageJsonPackages -WordToComplete $wordToComplete
         }
     }
 }

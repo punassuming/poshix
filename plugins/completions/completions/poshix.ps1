@@ -100,13 +100,16 @@ Register-ArgumentCompleter -CommandName Import-PoshixPlugin,Remove-PoshixPlugin 
         # Complete with available plugin names
         try {
             $customPluginPath = Join-Path $env:USERPROFILE ".poshix/plugins"
-            $builtinPluginPath = Join-Path $PSScriptRoot "../.."
+            # Navigate from completions/completions/ to the plugin root
+            $completionsDir = Split-Path -Parent $PSScriptRoot
+            $pluginsRoot = Split-Path -Parent $completionsDir
+            $builtinPluginPath = $pluginsRoot
             
             $plugins = @()
             
             # Get built-in plugins
-            if (Test-Path "$builtinPluginPath/plugins") {
-                Get-ChildItem "$builtinPluginPath/plugins" -Directory -ErrorAction SilentlyContinue | 
+            if (Test-Path $builtinPluginPath) {
+                Get-ChildItem $builtinPluginPath -Directory -ErrorAction SilentlyContinue | 
                     ForEach-Object { $plugins += $_.Name }
             }
             
