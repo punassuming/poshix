@@ -284,7 +284,7 @@ The Themes plugin provides comprehensive theming capabilities with full RGB colo
 ### Features
 
 - **RGB Color Support**: Define themes with full hex color values (#RRGGBB) for true color support
-- **Windows Terminal Integration**: Automatically applies themes to Windows Terminal settings.json
+- **Windows Terminal Integration**: Optional integration through the `windows-terminal` plugin
 - **Built-in Themes**: Professional themes included (Dracula, Monokai, Nord, Solarized, One Dark)
 - **Custom Themes**: Create your own themes easily
 - **Automatic Color Mapping**: Intelligent color application to Poshix tools
@@ -315,14 +315,7 @@ Set-PoshixTheme -Name nord
 
 # Apply a theme to both Poshix and Windows Terminal
 Set-PoshixTheme -Name dracula -ApplyToTerminal
-
-# Add tmux-like pane split/navigation keybindings to Windows Terminal
-Set-WindowsTerminalTmuxKeybindings
 ```
-
-The tmux-style bindings include:
-- Split pane: `Alt+Shift+↑/↓/←/→`
-- Move pane focus: `Alt+↑/↓/←/→`
 
 ### Built-in Themes
 
@@ -360,7 +353,7 @@ $colors = @{
 New-PoshixTheme -Name 'my-custom-theme' -Colors $colors
 ```
 
-See `plugins/themes/README.md` for detailed documentation on theme format and Windows Terminal integration.
+See `plugins/themes/README.md` for detailed documentation on theme format.
 
 ### Creating Custom Plugins
 
@@ -435,6 +428,36 @@ Save-PoshixConfig
 ```
 
 Requires [Starship](https://starship.rs) to be installed separately.
+
+#### Windows Terminal
+Windows Terminal settings integration for theme application and tmux-like pane keybindings.
+
+```powershell
+# Enable in config
+$config = @{ Plugins = @('themes', 'windows-terminal') }
+Set-PoshixConfig -Config $config
+Save-PoshixConfig
+
+# Or load manually
+Import-PoshixPlugin -Name 'windows-terminal'
+
+# Apply tmux-like pane split/navigation keybindings
+Set-WindowsTerminalTmuxKeybindings
+```
+
+Keybindings:
+- Split pane: `Alt+Shift+↑/↓/←/→`
+- Move pane focus: `Alt+↑/↓/←/→`
+
+See [plugins/windows-terminal/README.md](plugins/windows-terminal/README.md) for details.
+
+### Plugin Ideas for Command Line Gurus
+
+- **git-worktree**: Fast worktree create/switch/prune helpers
+- **session-layouts**: Save/restore cwd, tabs, and pane/task layouts
+- **fzf-tools**: Fuzzy wrappers for history, files, branches, and processes
+- **k8s-context**: Kubernetes context/namespace switch and prompt indicators
+- **task-runner**: Project command aliases with per-repo task discovery
 
 ### Plugin Auto-Registration Features
 

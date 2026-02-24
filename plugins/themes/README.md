@@ -1,11 +1,10 @@
 # Poshix Themes Plugin
 
-The Themes plugin provides comprehensive theming capabilities for Poshix with full RGB color support (color3d) and Windows Terminal integration.
+The Themes plugin provides comprehensive theming capabilities for Poshix with full RGB color support (color3d).
 
 ## Features
 
 - **RGB Color Support**: Define themes with full hex color values (#RRGGBB)
-- **Windows Terminal Integration**: Automatically applies themes to Windows Terminal settings
 - **Built-in Themes**: Multiple professional themes included
 - **Custom Themes**: Create your own themes easily
 - **Automatic Color Mapping**: Intelligent conversion from RGB to ANSI colors for Poshix output
@@ -55,21 +54,11 @@ Apply to both Poshix and Windows Terminal:
 Set-PoshixTheme -Name dracula -ApplyToTerminal
 ```
 
-When applying to Windows Terminal, the plugin will:
+When applying to Windows Terminal (`Set-PoshixTheme -ApplyToTerminal`), Poshix will use the `windows-terminal` plugin to:
 1. Backup your existing settings.json
 2. Add the theme as a color scheme
 3. Apply it to all PowerShell profiles
 4. Notify you to restart the terminal
-
-### Add tmux-like pane keybindings in Windows Terminal
-
-```powershell
-Set-WindowsTerminalTmuxKeybindings
-```
-
-This adds pane management shortcuts:
-- Split pane: `Alt+Shift+↑/↓/←/→`
-- Move pane focus: `Alt+↑/↓/←/→`
 
 ### Create a Custom Theme
 
@@ -180,25 +169,8 @@ User themes take precedence over built-in themes with the same name.
 
 ## Windows Terminal Integration
 
-When you use `-ApplyToTerminal`, the plugin:
-
-1. Locates your Windows Terminal settings.json file
-2. Creates a backup (settings.json.backup)
-3. Adds the theme to the `schemes` array with prefix "Poshix-"
-4. Updates all PowerShell profiles to use the theme
-5. Notifies you to restart Windows Terminal
-
-### Settings File Locations
-
-The plugin searches for settings in:
-- `%LOCALAPPDATA%\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json`
-- `%LOCALAPPDATA%\Packages\Microsoft.WindowsTerminalPreview_8wekyb3d8bbwe\LocalState\settings.json`
-
-### Safety
-
-- A backup is always created before modifying settings
-- If an error occurs, settings are restored from backup
-- Only PowerShell profiles are modified
+Windows Terminal settings support now lives in `plugins/windows-terminal/`.
+See `plugins/windows-terminal/README.md` for direct commands and keybinding configuration.
 
 ## Color3D Support
 
