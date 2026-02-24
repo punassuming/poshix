@@ -162,38 +162,46 @@ function Set-WindowsTerminalTheme {
     The theme object to apply
     .PARAMETER Name
     The name of the theme
+    .PARAMETER SettingsPath
+    Optional path to the Windows Terminal settings.json file (used for testing)
     #>
     param(
         [Parameter(Mandatory=$true)]
         $Theme,
         
         [Parameter(Mandatory=$true)]
-        [string]$Name
+        [string]$Name,
+        
+        [Parameter(Mandatory=$false)]
+        [string]$SettingsPath
     )
     
     # Find Windows Terminal settings file
-    $settingsPaths = @(
-        "$env:LOCALAPPDATA\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json",
-        "$env:LOCALAPPDATA\Packages\Microsoft.WindowsTerminalPreview_8wekyb3d8bbwe\LocalState\settings.json"
-    )
+    if (-not $SettingsPath) {
+        $settingsPaths = @(
+            "$env:LOCALAPPDATA\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json",
+            "$env:LOCALAPPDATA\Packages\Microsoft.WindowsTerminalPreview_8wekyb3d8bbwe\LocalState\settings.json",
+            "$env:LOCALAPPDATA\Microsoft\Windows Terminal\settings.json"
+        )
+        
+        $SettingsPath = $settingsPaths | Where-Object { Test-Path $_ } | Select-Object -First 1
+    }
     
-    $settingsPath = $settingsPaths | Where-Object { Test-Path $_ } | Select-Object -First 1
-    
-    if (-not $settingsPath) {
+    if (-not $SettingsPath -or -not (Test-Path $SettingsPath)) {
         Write-Warning "Windows Terminal settings file not found. Theme only applied to Poshix."
         return
     }
     
     try {
         # Backup settings
-        $backupPath = "$settingsPath.backup"
-        Copy-Item -Path $settingsPath -Destination $backupPath -Force
+        $backupPath = "$SettingsPath.backup"
+        Copy-Item -Path $SettingsPath -Destination $backupPath -Force
         
         # Read settings
-        $settings = Get-Content $settingsPath -Raw | ConvertFrom-Json
+        $settings = Get-Content $SettingsPath -Raw | ConvertFrom-Json
         
         # Ensure schemes array exists
-        if (-not $settings.schemes) {
+        if ($null -eq $settings.PSObject.Properties['schemes']) {
             $settings | Add-Member -MemberType NoteProperty -Name 'schemes' -Value @()
         }
         
@@ -244,16 +252,16 @@ function Set-WindowsTerminalTheme {
         
         # Apply to PowerShell profile if present
         if ($settings.profiles -and $settings.profiles.list) {
-            foreach ($profile in $settings.profiles.list) {
-                if ($profile.name -match 'PowerShell' -or $profile.commandline -match 'pwsh|powershell') {
-                    $profile.colorScheme = "Poshix-$Name"
+            foreach ($wtProfile in $settings.profiles.list) {
+                if ($wtProfile.name -match 'PowerShell' -or $wtProfile.commandline -match 'pwsh|powershell') {
+                    $wtProfile | Add-Member -MemberType NoteProperty -Name 'colorScheme' -Value "Poshix-$Name" -Force
                 }
             }
         }
         
         # Write settings back (use UTF8 with BOM for Windows Terminal compatibility)
         $json = $settings | ConvertTo-Json -Depth 100
-        [System.IO.File]::WriteAllText($settingsPath, $json, [System.Text.UTF8Encoding]::new($true))
+        [System.IO.File]::WriteAllText($SettingsPath, $json, [System.Text.UTF8Encoding]::new($true))
         
         Write-Host "Theme applied to Windows Terminal. Restart terminal to see changes." -ForegroundColor Green
         Write-Host "Backup saved to: $backupPath" -ForegroundColor Gray
@@ -262,7 +270,7 @@ function Set-WindowsTerminalTheme {
         Write-Error "Failed to apply theme to Windows Terminal: $_"
         # Restore backup if something went wrong
         if (Test-Path $backupPath) {
-            Copy-Item -Path $backupPath -Destination $settingsPath -Force
+            Copy-Item -Path $backupPath -Destination $SettingsPath -Force
             Write-Warning "Settings restored from backup"
         }
     }
@@ -305,5 +313,6 @@ Set-Item -Path "function:global:Get-PoshixThemes" -Value ${function:Get-PoshixTh
 Set-Item -Path "function:global:Get-PoshixTheme" -Value ${function:Get-PoshixTheme}
 Set-Item -Path "function:global:Set-PoshixTheme" -Value ${function:Set-PoshixTheme}
 Set-Item -Path "function:global:New-PoshixTheme" -Value ${function:New-PoshixTheme}
+Set-Item -Path "function:global:Set-WindowsTerminalTheme" -Value ${function:Set-WindowsTerminalTheme}
 
 Write-Verbose "[poshix] Themes plugin loaded - RGB color support and Windows Terminal integration enabled"
