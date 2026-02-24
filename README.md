@@ -315,7 +315,14 @@ Set-PoshixTheme -Name nord
 
 # Apply a theme to both Poshix and Windows Terminal
 Set-PoshixTheme -Name dracula -ApplyToTerminal
+
+# Add tmux-like pane split/navigation keybindings to Windows Terminal
+Set-WindowsTerminalTmuxKeybindings
 ```
+
+The tmux-style bindings include:
+- Split pane: `Alt+Shift+↑/↓/←/→`
+- Move pane focus: `Alt+↑/↓/←/→`
 
 ### Built-in Themes
 

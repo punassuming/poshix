@@ -61,6 +61,16 @@ When applying to Windows Terminal, the plugin will:
 3. Apply it to all PowerShell profiles
 4. Notify you to restart the terminal
 
+### Add tmux-like pane keybindings in Windows Terminal
+
+```powershell
+Set-WindowsTerminalTmuxKeybindings
+```
+
+This adds pane management shortcuts:
+- Split pane: `Alt+Shift+↑/↓/←/→`
+- Move pane focus: `Alt+↑/↓/←/→`
+
 ### Create a Custom Theme
 
 ```powershell

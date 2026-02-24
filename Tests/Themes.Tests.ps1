@@ -20,6 +20,7 @@ Describe 'Themes Plugin' {
             Get-Command Get-PoshixTheme -ErrorAction SilentlyContinue | Should -Not -BeNullOrEmpty
             Get-Command Set-PoshixTheme -ErrorAction SilentlyContinue | Should -Not -BeNullOrEmpty
             Get-Command New-PoshixTheme -ErrorAction SilentlyContinue | Should -Not -BeNullOrEmpty
+            Get-Command Set-WindowsTerminalTmuxKeybindings -ErrorAction SilentlyContinue | Should -Not -BeNullOrEmpty
         }
     }
     
@@ -257,6 +258,49 @@ Describe 'Themes Plugin' {
             $updated = Get-Content $script:wtSettingsPath -Raw | ConvertFrom-Json
             $schemes = @($updated.schemes | Where-Object { $_.name -eq 'Poshix-dracula' })
             $schemes.Count | Should -Be 1
+        }
+    }
+
+    Context 'Set-WindowsTerminalTmuxKeybindings' {
+        BeforeAll {
+            $script:wtSettingsDir = Join-Path $TestDrive 'WindowsTerminalTmux'
+            New-Item -ItemType Directory -Path $script:wtSettingsDir -Force | Out-Null
+            $script:wtTmuxSettingsPath = Join-Path $script:wtSettingsDir 'settings.json'
+
+            $script:initialTmuxSettings = @{
+                '$help' = 'https://aka.ms/terminal-documentation'
+                profiles = @{
+                    defaults = @{}
+                    list = @()
+                }
+                actions = @()
+            }
+            $script:initialTmuxSettings | ConvertTo-Json -Depth 10 | Set-Content -Path $script:wtTmuxSettingsPath -Encoding UTF8
+        }
+
+        AfterEach {
+            $script:initialTmuxSettings | ConvertTo-Json -Depth 10 | Set-Content -Path $script:wtTmuxSettingsPath -Encoding UTF8
+            if (Test-Path "$script:wtTmuxSettingsPath.backup") {
+                Remove-Item "$script:wtTmuxSettingsPath.backup" -Force
+            }
+        }
+
+        It 'Should add tmux-style split and navigation actions' {
+            Set-WindowsTerminalTmuxKeybindings -SettingsPath $script:wtTmuxSettingsPath
+
+            $updated = Get-Content $script:wtTmuxSettingsPath -Raw | ConvertFrom-Json
+            ($updated.actions | Where-Object { $_.name -eq 'Poshix: Split pane up' }).keys | Should -Be 'alt+shift+up'
+            ($updated.actions | Where-Object { $_.name -eq 'Poshix: Split pane down' }).keys | Should -Be 'alt+shift+down'
+            ($updated.actions | Where-Object { $_.name -eq 'Poshix: Focus pane left' }).keys | Should -Be 'alt+left'
+            ($updated.actions | Where-Object { $_.name -eq 'Poshix: Focus pane right' }).keys | Should -Be 'alt+right'
+        }
+
+        It 'Should replace existing Poshix tmux-style actions' {
+            Set-WindowsTerminalTmuxKeybindings -SettingsPath $script:wtTmuxSettingsPath
+            Set-WindowsTerminalTmuxKeybindings -SettingsPath $script:wtTmuxSettingsPath
+
+            $updated = Get-Content $script:wtTmuxSettingsPath -Raw | ConvertFrom-Json
+            @($updated.actions | Where-Object { $_.name -match '^Poshix: ' }).Count | Should -Be 8
         }
     }
 }
