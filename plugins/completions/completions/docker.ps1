@@ -69,20 +69,21 @@ $dockerComposeSubcommands = @{
     'rm' = @('-f', '--force', '-s', '--stop', '-v', '--volumes')
 }
 
-Register-ArgumentCompleter -CommandName docker -ScriptBlock {
-    param($commandName, $wordToComplete, $commandAst, $fakeBoundParameters)
+Register-ArgumentCompleter -Native -CommandName docker -ScriptBlock ({
+    param($wordToComplete, $commandAst, $cursorPosition)
     
-    $tokens = $commandAst.ToString().Split(' ', [StringSplitOptions]::RemoveEmptyEntries)
+    $tokens = $commandAst.CommandElements | ForEach-Object { $_.ToString() }
+    $completingIndex = if ($wordToComplete) { $tokens.Count - 1 } else { $tokens.Count }
     
     # Complete main subcommands
-    if ($tokens.Count -eq 1 -or ($tokens.Count -eq 2 -and -not $wordToComplete.StartsWith('-'))) {
+    if ($completingIndex -eq 1 -and -not $wordToComplete.StartsWith('-')) {
         $dockerSubcommands.Keys | Where-Object { $_ -like "$wordToComplete*" } | Sort-Object | ForEach-Object {
             [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterValue', "docker $_")
         }
     }
     # Complete options
     elseif ($wordToComplete.StartsWith('-')) {
-        $subcommand = if ($tokens.Count -gt 1) { $tokens[1] } else { $null }
+        $subcommand = if ($completingIndex -gt 1) { $tokens[1] } else { $null }
         
         if ($subcommand -and $dockerSubcommands.ContainsKey($subcommand)) {
             $dockerSubcommands[$subcommand] | Where-Object { $_ -like "$wordToComplete*" } | Sort-Object | ForEach-Object {
@@ -92,60 +93,60 @@ Register-ArgumentCompleter -CommandName docker -ScriptBlock {
     }
     # Context-specific completions
     else {
-        $subcommand = if ($tokens.Count -gt 1) { $tokens[1] } else { $null }
+        $subcommand = if ($completingIndex -gt 1) { $tokens[1] } else { $null }
         
         switch ($subcommand) {
             'start' {
                 # Complete with stopped containers
-                docker ps -a --filter "status=exited" --format "{{.Names}}" 2>$null | Where-Object { $_ -like "$wordToComplete*" } | ForEach-Object {
+                & docker ps -a --filter "status=exited" --format "{{.Names}}" 2>$null | Where-Object { $_ -like "$wordToComplete*" } | ForEach-Object {
                     [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterValue', "container: $_")
                 }
             }
             'stop' {
                 # Complete with running containers
-                docker ps --format "{{.Names}}" 2>$null | Where-Object { $_ -like "$wordToComplete*" } | ForEach-Object {
+                & docker ps --format "{{.Names}}" 2>$null | Where-Object { $_ -like "$wordToComplete*" } | ForEach-Object {
                     [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterValue', "container: $_")
                 }
             }
             'restart' {
                 # Complete with all containers
-                docker ps -a --format "{{.Names}}" 2>$null | Where-Object { $_ -like "$wordToComplete*" } | ForEach-Object {
+                & docker ps -a --format "{{.Names}}" 2>$null | Where-Object { $_ -like "$wordToComplete*" } | ForEach-Object {
                     [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterValue', "container: $_")
                 }
             }
             'kill' {
                 # Complete with running containers
-                docker ps --format "{{.Names}}" 2>$null | Where-Object { $_ -like "$wordToComplete*" } | ForEach-Object {
+                & docker ps --format "{{.Names}}" 2>$null | Where-Object { $_ -like "$wordToComplete*" } | ForEach-Object {
                     [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterValue', "container: $_")
                 }
             }
             'rm' {
                 # Complete with stopped containers
-                docker ps -a --filter "status=exited" --format "{{.Names}}" 2>$null | Where-Object { $_ -like "$wordToComplete*" } | ForEach-Object {
+                & docker ps -a --filter "status=exited" --format "{{.Names}}" 2>$null | Where-Object { $_ -like "$wordToComplete*" } | ForEach-Object {
                     [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterValue', "container: $_")
                 }
             }
             'exec' {
                 # Complete with running containers
-                docker ps --format "{{.Names}}" 2>$null | Where-Object { $_ -like "$wordToComplete*" } | ForEach-Object {
+                & docker ps --format "{{.Names}}" 2>$null | Where-Object { $_ -like "$wordToComplete*" } | ForEach-Object {
                     [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterValue', "container: $_")
                 }
             }
             'logs' {
                 # Complete with all containers
-                docker ps -a --format "{{.Names}}" 2>$null | Where-Object { $_ -like "$wordToComplete*" } | ForEach-Object {
+                & docker ps -a --format "{{.Names}}" 2>$null | Where-Object { $_ -like "$wordToComplete*" } | ForEach-Object {
                     [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterValue', "container: $_")
                 }
             }
             'run' {
                 # Complete with image names
-                docker images --format "{{.Repository}}:{{.Tag}}" 2>$null | Where-Object { $_ -like "$wordToComplete*" } | ForEach-Object {
+                & docker images --format "{{.Repository}}:{{.Tag}}" 2>$null | Where-Object { $_ -like "$wordToComplete*" } | ForEach-Object {
                     [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterValue', "image: $_")
                 }
             }
             'rmi' {
                 # Complete with image names
-                docker images --format "{{.Repository}}:{{.Tag}}" 2>$null | Where-Object { $_ -like "$wordToComplete*" } | ForEach-Object {
+                & docker images --format "{{.Repository}}:{{.Tag}}" 2>$null | Where-Object { $_ -like "$wordToComplete*" } | ForEach-Object {
                     [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterValue', "image: $_")
                 }
             }
@@ -159,6 +160,6 @@ Register-ArgumentCompleter -CommandName docker -ScriptBlock {
             }
         }
     }
-}
+}.GetNewClosure())
 
 Write-Verbose "[poshix-completions] Docker completions registered"

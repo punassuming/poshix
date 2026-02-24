@@ -140,20 +140,21 @@ $yarnSubcommands = @{
 }
 
 # Register npm completer
-Register-ArgumentCompleter -CommandName npm -ScriptBlock {
-    param($commandName, $wordToComplete, $commandAst, $fakeBoundParameters)
+Register-ArgumentCompleter -Native -CommandName npm -ScriptBlock ({
+    param($wordToComplete, $commandAst, $cursorPosition)
     
-    $tokens = $commandAst.ToString().Split(' ', [StringSplitOptions]::RemoveEmptyEntries)
+    $tokens = $commandAst.CommandElements | ForEach-Object { $_.ToString() }
+    $completingIndex = if ($wordToComplete) { $tokens.Count - 1 } else { $tokens.Count }
     
     # Complete subcommands
-    if ($tokens.Count -eq 1 -or ($tokens.Count -eq 2 -and -not $wordToComplete.StartsWith('-'))) {
+    if ($completingIndex -eq 1 -and -not $wordToComplete.StartsWith('-')) {
         $npmSubcommands.Keys | Where-Object { $_ -like "$wordToComplete*" } | Sort-Object | ForEach-Object {
             [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterValue', "npm $_")
         }
     }
     # Complete options
     elseif ($wordToComplete.StartsWith('-')) {
-        $subcommand = if ($tokens.Count -gt 1) { $tokens[1] } else { $null }
+        $subcommand = if ($completingIndex -gt 1) { $tokens[1] } else { $null }
         
         if ($subcommand -and $npmSubcommands.ContainsKey($subcommand)) {
             $npmSubcommands[$subcommand] | Where-Object { $_ -like "$wordToComplete*" } | Sort-Object | ForEach-Object {
@@ -163,7 +164,7 @@ Register-ArgumentCompleter -CommandName npm -ScriptBlock {
     }
     # Complete scripts from package.json
     else {
-        $subcommand = if ($tokens.Count -gt 1) { $tokens[1] } else { $null }
+        $subcommand = if ($completingIndex -gt 1) { $tokens[1] } else { $null }
         
         if ($subcommand -in @('run', 'run-script') -and (Test-Path 'package.json')) {
             try {
@@ -182,16 +183,17 @@ Register-ArgumentCompleter -CommandName npm -ScriptBlock {
             Get-PackageJsonPackages -WordToComplete $wordToComplete
         }
     }
-}
+}.GetNewClosure())
 
 # Register yarn completer
-Register-ArgumentCompleter -CommandName yarn -ScriptBlock {
-    param($commandName, $wordToComplete, $commandAst, $fakeBoundParameters)
+Register-ArgumentCompleter -Native -CommandName yarn -ScriptBlock ({
+    param($wordToComplete, $commandAst, $cursorPosition)
     
-    $tokens = $commandAst.ToString().Split(' ', [StringSplitOptions]::RemoveEmptyEntries)
+    $tokens = $commandAst.CommandElements | ForEach-Object { $_.ToString() }
+    $completingIndex = if ($wordToComplete) { $tokens.Count - 1 } else { $tokens.Count }
     
     # Complete subcommands
-    if ($tokens.Count -eq 1 -or ($tokens.Count -eq 2 -and -not $wordToComplete.StartsWith('-'))) {
+    if ($completingIndex -eq 1 -and -not $wordToComplete.StartsWith('-')) {
         # Yarn commands
         $yarnSubcommands.Keys | Where-Object { $_ -like "$wordToComplete*" } | Sort-Object | ForEach-Object {
             [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterValue', "yarn $_")
@@ -213,7 +215,7 @@ Register-ArgumentCompleter -CommandName yarn -ScriptBlock {
     }
     # Complete options
     elseif ($wordToComplete.StartsWith('-')) {
-        $subcommand = if ($tokens.Count -gt 1) { $tokens[1] } else { $null }
+        $subcommand = if ($completingIndex -gt 1) { $tokens[1] } else { $null }
         
         if ($subcommand -and $yarnSubcommands.ContainsKey($subcommand)) {
             $yarnSubcommands[$subcommand] | Where-Object { $_ -like "$wordToComplete*" } | Sort-Object | ForEach-Object {
@@ -223,12 +225,12 @@ Register-ArgumentCompleter -CommandName yarn -ScriptBlock {
     }
     # Complete package names for remove
     else {
-        $subcommand = if ($tokens.Count -gt 1) { $tokens[1] } else { $null }
+        $subcommand = if ($completingIndex -gt 1) { $tokens[1] } else { $null }
         
         if ($subcommand -in @('remove', 'upgrade', 'why')) {
             Get-PackageJsonPackages -WordToComplete $wordToComplete
         }
     }
-}
+}.GetNewClosure())
 
 Write-Verbose "[poshix-completions] npm and yarn completions registered"
