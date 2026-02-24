@@ -70,20 +70,21 @@ $kubectlResources = @(
     'horizontalpodautoscalers', 'hpa', 'poddisruptionbudgets', 'pdb'
 )
 
-Register-ArgumentCompleter -CommandName kubectl -ScriptBlock {
-    param($commandName, $wordToComplete, $commandAst, $fakeBoundParameters)
+Register-ArgumentCompleter -Native -CommandName kubectl -ScriptBlock ({
+    param($wordToComplete, $commandAst, $cursorPosition)
     
-    $tokens = $commandAst.ToString().Split(' ', [StringSplitOptions]::RemoveEmptyEntries)
+    $tokens = $commandAst.CommandElements | ForEach-Object { $_.ToString() }
+    $completingIndex = if ($wordToComplete) { $tokens.Count - 1 } else { $tokens.Count }
     
     # Complete subcommands
-    if ($tokens.Count -eq 1 -or ($tokens.Count -eq 2 -and -not $wordToComplete.StartsWith('-'))) {
+    if ($completingIndex -eq 1 -and -not $wordToComplete.StartsWith('-')) {
         $kubectlSubcommands.Keys | Where-Object { $_ -like "$wordToComplete*" } | Sort-Object | ForEach-Object {
             [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterValue', "kubectl $_")
         }
     }
     # Complete options
     elseif ($wordToComplete.StartsWith('-')) {
-        $subcommand = if ($tokens.Count -gt 1) { $tokens[1] } else { $null }
+        $subcommand = if ($completingIndex -gt 1) { $tokens[1] } else { $null }
         
         # Global options
         $globalOptions = @(
@@ -105,15 +106,16 @@ Register-ArgumentCompleter -CommandName kubectl -ScriptBlock {
     }
     # Complete resource types and names
     else {
-        $subcommand = if ($tokens.Count -gt 1) { $tokens[1] } else { $null }
+        $subcommand = if ($completingIndex -gt 1) { $tokens[1] } else { $null }
         
         # For commands that work with resources, suggest resource types
         if ($subcommand -in @('get', 'describe', 'delete', 'edit', 'logs', 'exec', 'port-forward', 'scale', 'autoscale', 'label', 'annotate', 'patch', 'replace')) {
-            # Check if we already have a resource type
+            # Check if we already have a resource type (exclude the word currently being typed)
             $hasResourceType = $false
             $resourceType = $null
+            $lastCompleteTokenIndex = if ($wordToComplete) { $tokens.Count - 2 } else { $tokens.Count - 1 }
             
-            for ($i = 2; $i -lt $tokens.Count; $i++) {
+            for ($i = 2; $i -le $lastCompleteTokenIndex; $i++) {
                 if ($tokens[$i] -in $kubectlResources) {
                     $hasResourceType = $true
                     $resourceType = $tokens[$i]
@@ -129,7 +131,10 @@ Register-ArgumentCompleter -CommandName kubectl -ScriptBlock {
             } else {
                 # Try to complete with actual resource names from cluster
                 try {
-                    $namespace = if ($fakeBoundParameters.ContainsKey('namespace')) { $fakeBoundParameters['namespace'] } else { $null }
+                    $namespace = if ($tokens -contains '-n') {
+                        $nIdx = [array]::IndexOf($tokens, '-n')
+                        if ($nIdx -ge 0 -and $nIdx + 1 -lt $tokens.Count) { $tokens[$nIdx + 1] } else { $null }
+                    } else { $null }
                     
                     # Build kubectl arguments array safely
                     $kubectlArgs = @('get', $resourceType)
@@ -150,20 +155,10 @@ Register-ArgumentCompleter -CommandName kubectl -ScriptBlock {
                 }
             }
         }
-        # For 'config use-context', suggest contexts
-        elseif ($tokens.Count -ge 3 -and $tokens[1] -eq 'config' -and $tokens[2] -eq 'use-context') {
+        # For 'config use-context' or 'config set-context', suggest contexts
+        elseif ($completingIndex -ge 3 -and $tokens.Count -gt 2 -and $tokens[1] -eq 'config' -and $tokens[2] -in @('use-context', 'set-context')) {
             try {
-                kubectl config get-contexts -o name 2>$null | Where-Object { $_ -like "$wordToComplete*" } | ForEach-Object {
-                    [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterValue', "context: $_")
-                }
-            } catch {
-                # Ignore errors
-            }
-        }
-        # For 'config set-context', suggest contexts
-        elseif ($tokens.Count -ge 3 -and $tokens[1] -eq 'config' -and $tokens[2] -eq 'set-context') {
-            try {
-                kubectl config get-contexts -o name 2>$null | Where-Object { $_ -like "$wordToComplete*" } | ForEach-Object {
+                & kubectl config get-contexts -o name 2>$null | Where-Object { $_ -like "$wordToComplete*" } | ForEach-Object {
                     [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterValue', "context: $_")
                 }
             } catch {
@@ -171,6 +166,6 @@ Register-ArgumentCompleter -CommandName kubectl -ScriptBlock {
             }
         }
     }
-}
+}.GetNewClosure())
 
 Write-Verbose "[poshix-completions] kubectl completions registered"

@@ -20,25 +20,26 @@ $cargoSubcommands = @{
     'tree' = @('--manifest-path', '--features', '--all-features', '--no-default-features', '--target', '--invert', '-i', '--prune', '--depth', '--prefix', '--verbose', '-v')
 }
 
-Register-ArgumentCompleter -CommandName cargo -ScriptBlock {
-    param($commandName, $wordToComplete, $commandAst, $fakeBoundParameters)
+Register-ArgumentCompleter -Native -CommandName cargo -ScriptBlock ({
+    param($wordToComplete, $commandAst, $cursorPosition)
     
-    $tokens = $commandAst.ToString().Split(' ', [StringSplitOptions]::RemoveEmptyEntries)
+    $tokens = $commandAst.CommandElements | ForEach-Object { $_.ToString() }
+    $completingIndex = if ($wordToComplete) { $tokens.Count - 1 } else { $tokens.Count }
     
-    if ($tokens.Count -eq 1 -or ($tokens.Count -eq 2 -and -not $wordToComplete.StartsWith('-'))) {
+    if ($completingIndex -eq 1 -and -not $wordToComplete.StartsWith('-')) {
         $cargoSubcommands.Keys | Where-Object { $_ -like "$wordToComplete*" } | Sort-Object | ForEach-Object {
             [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterValue', "cargo $_")
         }
     }
     elseif ($wordToComplete.StartsWith('-')) {
-        $subcommand = if ($tokens.Count -gt 1) { $tokens[1] } else { $null }
+        $subcommand = if ($completingIndex -gt 1) { $tokens[1] } else { $null }
         if ($subcommand -and $cargoSubcommands.ContainsKey($subcommand)) {
             $cargoSubcommands[$subcommand] | Where-Object { $_ -like "$wordToComplete*" } | Sort-Object | ForEach-Object {
                 [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterName', $_)
             }
         }
     }
-}
+}.GetNewClosure())
 
 # pip (Python package manager) completions
 $pipSubcommands = @{
@@ -57,18 +58,19 @@ $pipSubcommands = @{
     'cache' = @('dir', 'info', 'list', 'remove', 'purge')
 }
 
-Register-ArgumentCompleter -CommandName pip -ScriptBlock {
-    param($commandName, $wordToComplete, $commandAst, $fakeBoundParameters)
+Register-ArgumentCompleter -Native -CommandName pip -ScriptBlock ({
+    param($wordToComplete, $commandAst, $cursorPosition)
     
-    $tokens = $commandAst.ToString().Split(' ', [StringSplitOptions]::RemoveEmptyEntries)
+    $tokens = $commandAst.CommandElements | ForEach-Object { $_.ToString() }
+    $completingIndex = if ($wordToComplete) { $tokens.Count - 1 } else { $tokens.Count }
     
-    if ($tokens.Count -eq 1 -or ($tokens.Count -eq 2 -and -not $wordToComplete.StartsWith('-'))) {
+    if ($completingIndex -eq 1 -and -not $wordToComplete.StartsWith('-')) {
         $pipSubcommands.Keys | Where-Object { $_ -like "$wordToComplete*" } | Sort-Object | ForEach-Object {
             [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterValue', "pip $_")
         }
     }
     elseif ($wordToComplete.StartsWith('-')) {
-        $subcommand = if ($tokens.Count -gt 1) { $tokens[1] } else { $null }
+        $subcommand = if ($completingIndex -gt 1) { $tokens[1] } else { $null }
         if ($subcommand -and $pipSubcommands.ContainsKey($subcommand)) {
             $pipSubcommands[$subcommand] | Where-Object { $_ -like "$wordToComplete*" } | Sort-Object | ForEach-Object {
                 [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterName', $_)
@@ -76,11 +78,11 @@ Register-ArgumentCompleter -CommandName pip -ScriptBlock {
         }
     }
     else {
-        $subcommand = if ($tokens.Count -gt 1) { $tokens[1] } else { $null }
+        $subcommand = if ($completingIndex -gt 1) { $tokens[1] } else { $null }
         # For uninstall/show, complete with installed packages
         if ($subcommand -in @('uninstall', 'show')) {
             try {
-                pip list --format=freeze 2>$null | ForEach-Object {
+                & pip list --format=freeze 2>$null | ForEach-Object {
                     $pkg = $_ -split '==' | Select-Object -First 1
                     if ($pkg -like "$wordToComplete*") {
                         [System.Management.Automation.CompletionResult]::new($pkg, $pkg, 'ParameterValue', "package: $pkg")
@@ -91,7 +93,7 @@ Register-ArgumentCompleter -CommandName pip -ScriptBlock {
             }
         }
     }
-}
+}.GetNewClosure())
 
 # dotnet CLI completions
 $dotnetSubcommands = @{
@@ -112,24 +114,25 @@ $dotnetSubcommands = @{
     'watch' = @('--configuration', '-c', '--framework', '-f', '--project', '-p', '--no-restore', '--verbosity', '-v')
 }
 
-Register-ArgumentCompleter -CommandName dotnet -ScriptBlock {
-    param($commandName, $wordToComplete, $commandAst, $fakeBoundParameters)
+Register-ArgumentCompleter -Native -CommandName dotnet -ScriptBlock ({
+    param($wordToComplete, $commandAst, $cursorPosition)
     
-    $tokens = $commandAst.ToString().Split(' ', [StringSplitOptions]::RemoveEmptyEntries)
+    $tokens = $commandAst.CommandElements | ForEach-Object { $_.ToString() }
+    $completingIndex = if ($wordToComplete) { $tokens.Count - 1 } else { $tokens.Count }
     
-    if ($tokens.Count -eq 1 -or ($tokens.Count -eq 2 -and -not $wordToComplete.StartsWith('-'))) {
+    if ($completingIndex -eq 1 -and -not $wordToComplete.StartsWith('-')) {
         $dotnetSubcommands.Keys | Where-Object { $_ -like "$wordToComplete*" } | Sort-Object | ForEach-Object {
             [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterValue', "dotnet $_")
         }
     }
     elseif ($wordToComplete.StartsWith('-')) {
-        $subcommand = if ($tokens.Count -gt 1) { $tokens[1] } else { $null }
+        $subcommand = if ($completingIndex -gt 1) { $tokens[1] } else { $null }
         if ($subcommand -and $dotnetSubcommands.ContainsKey($subcommand)) {
             $dotnetSubcommands[$subcommand] | Where-Object { $_ -like "$wordToComplete*" } | Sort-Object | ForEach-Object {
                 [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterName', $_)
             }
         }
     }
-}
+}.GetNewClosure())
 
 Write-Verbose "[poshix-completions] cargo, pip, and dotnet completions registered"

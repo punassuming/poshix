@@ -53,13 +53,15 @@ $gitGlobalOptions = @(
     '--help', '-h', '--version'
 )
 
-Register-ArgumentCompleter -CommandName git -ScriptBlock {
-    param($commandName, $wordToComplete, $commandAst, $fakeBoundParameters)
+Register-ArgumentCompleter -Native -CommandName git -ScriptBlock ({
+    param($wordToComplete, $commandAst, $cursorPosition)
     
-    $tokens = $commandAst.ToString().Split(' ', [StringSplitOptions]::RemoveEmptyEntries)
+    $tokens = $commandAst.CommandElements | ForEach-Object { $_.ToString() }
+    # Number of complete tokens before the word being completed
+    $completingIndex = if ($wordToComplete) { $tokens.Count - 1 } else { $tokens.Count }
     
     # If completing the subcommand (position 1)
-    if ($tokens.Count -eq 1 -or ($tokens.Count -eq 2 -and -not $wordToComplete.StartsWith('-'))) {
+    if ($completingIndex -eq 1 -and -not $wordToComplete.StartsWith('-')) {
         $gitSubcommands.Keys | Where-Object { $_ -like "$wordToComplete*" } | Sort-Object | ForEach-Object {
             [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterValue', "git $_")
         }
@@ -67,10 +69,7 @@ Register-ArgumentCompleter -CommandName git -ScriptBlock {
     # If completing options
     elseif ($wordToComplete.StartsWith('-')) {
         # Determine if we're in a subcommand
-        $subcommand = $null
-        if ($tokens.Count -gt 1) {
-            $subcommand = $tokens[1]
-        }
+        $subcommand = if ($completingIndex -gt 1) { $tokens[1] } else { $null }
         
         # Complete global options
         $options = $gitGlobalOptions
@@ -86,30 +85,30 @@ Register-ArgumentCompleter -CommandName git -ScriptBlock {
     }
     # File/branch completion for specific commands
     else {
-        $subcommand = if ($tokens.Count -gt 1) { $tokens[1] } else { $null }
+        $subcommand = if ($completingIndex -gt 1) { $tokens[1] } else { $null }
         
         switch ($subcommand) {
             'checkout' {
                 # Complete with branches and files
-                git branch -a 2>$null | ForEach-Object { $_.Trim('* ') } | Where-Object { $_ -like "$wordToComplete*" } | ForEach-Object {
+                & git branch -a 2>$null | ForEach-Object { $_.Trim('* ') } | Where-Object { $_ -like "$wordToComplete*" } | ForEach-Object {
                     [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterValue', "branch: $_")
                 }
             }
             'switch' {
                 # Complete with branches
-                git branch -a 2>$null | ForEach-Object { $_.Trim('* ') } | Where-Object { $_ -like "$wordToComplete*" } | ForEach-Object {
+                & git branch -a 2>$null | ForEach-Object { $_.Trim('* ') } | Where-Object { $_ -like "$wordToComplete*" } | ForEach-Object {
                     [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterValue', "branch: $_")
                 }
             }
             'merge' {
                 # Complete with branches
-                git branch -a 2>$null | ForEach-Object { $_.Trim('* ') } | Where-Object { $_ -like "$wordToComplete*" } | ForEach-Object {
+                & git branch -a 2>$null | ForEach-Object { $_.Trim('* ') } | Where-Object { $_ -like "$wordToComplete*" } | ForEach-Object {
                     [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterValue', "branch: $_")
                 }
             }
             'add' {
                 # Complete with modified/untracked files
-                git status --porcelain 2>$null | ForEach-Object { 
+                & git status --porcelain 2>$null | ForEach-Object { 
                     $_.Substring(3).Trim('"')
                 } | Where-Object { $_ -like "$wordToComplete*" } | ForEach-Object {
                     [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterValue', "file: $_")
@@ -117,7 +116,7 @@ Register-ArgumentCompleter -CommandName git -ScriptBlock {
             }
             'restore' {
                 # Complete with modified files
-                git status --porcelain 2>$null | Where-Object { $_ -match '^\s*M' } | ForEach-Object { 
+                & git status --porcelain 2>$null | Where-Object { $_ -match '^\s*M' } | ForEach-Object { 
                     $_.Substring(3).Trim('"')
                 } | Where-Object { $_ -like "$wordToComplete*" } | ForEach-Object {
                     [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterValue', "file: $_")
@@ -125,12 +124,12 @@ Register-ArgumentCompleter -CommandName git -ScriptBlock {
             }
             'diff' {
                 # Complete with branches and files
-                git branch -a 2>$null | ForEach-Object { $_.Trim('* ') } | Where-Object { $_ -like "$wordToComplete*" } | ForEach-Object {
+                & git branch -a 2>$null | ForEach-Object { $_.Trim('* ') } | Where-Object { $_ -like "$wordToComplete*" } | ForEach-Object {
                     [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterValue', "branch: $_")
                 }
             }
         }
     }
-}
+}.GetNewClosure())
 
 Write-Verbose "[poshix-completions] Git completions registered"
