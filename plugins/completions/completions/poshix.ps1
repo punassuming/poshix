@@ -38,7 +38,7 @@ Register-ArgumentCompleter -CommandName Get-FileListing -ParameterName lspath -S
 
 # Plugin commands completion - complete the -Name parameter with available plugin names
 # Pre-compute the built-in plugins path so GetNewClosure() can capture it
-$script:_poshixCompletionsPluginsRoot = if ($PSScriptRoot) {
+$script:_poshixPluginsRoot = if ($PSScriptRoot) {
     # poshix.ps1 is at plugins/completions/completions/ - go up two levels to plugins/
     Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 } else { $null }
@@ -48,7 +48,7 @@ Register-ArgumentCompleter -CommandName Import-PoshixPlugin,Remove-PoshixPlugin 
 
     try {
         $customPluginPath = Join-Path $env:USERPROFILE ".poshix/plugins"
-        $builtinPluginPath = $script:_poshixCompletionsPluginsRoot
+        $builtinPluginPath = $script:_poshixPluginsRoot
 
         $plugins = @()
 

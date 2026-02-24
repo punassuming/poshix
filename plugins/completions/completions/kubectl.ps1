@@ -110,12 +110,12 @@ Register-ArgumentCompleter -Native -CommandName kubectl -ScriptBlock ({
         
         # For commands that work with resources, suggest resource types
         if ($subcommand -in @('get', 'describe', 'delete', 'edit', 'logs', 'exec', 'port-forward', 'scale', 'autoscale', 'label', 'annotate', 'patch', 'replace')) {
-            # Check if we already have a resource type (exclude the word being completed)
+            # Check if we already have a resource type (exclude the word currently being typed)
             $hasResourceType = $false
             $resourceType = $null
-            $tokenEndIndex = if ($wordToComplete) { $tokens.Count - 2 } else { $tokens.Count - 1 }
+            $lastCompleteTokenIndex = if ($wordToComplete) { $tokens.Count - 2 } else { $tokens.Count - 1 }
             
-            for ($i = 2; $i -le $tokenEndIndex; $i++) {
+            for ($i = 2; $i -le $lastCompleteTokenIndex; $i++) {
                 if ($tokens[$i] -in $kubectlResources) {
                     $hasResourceType = $true
                     $resourceType = $tokens[$i]
@@ -156,7 +156,7 @@ Register-ArgumentCompleter -Native -CommandName kubectl -ScriptBlock ({
             }
         }
         # For 'config use-context' or 'config set-context', suggest contexts
-        elseif ($completingIndex -ge 3 -and $tokens[1] -eq 'config' -and $tokens[2] -in @('use-context', 'set-context')) {
+        elseif ($completingIndex -ge 3 -and $tokens.Count -gt 2 -and $tokens[1] -eq 'config' -and $tokens[2] -in @('use-context', 'set-context')) {
             try {
                 & kubectl config get-contexts -o name 2>$null | Where-Object { $_ -like "$wordToComplete*" } | ForEach-Object {
                     [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterValue', "context: $_")
