@@ -304,9 +304,9 @@ function Set-WindowsTerminalTmuxKeybindings {
         return
     }
 
+    $backupPath = "$SettingsPath.backup"
     try {
         # Backup settings
-        $backupPath = "$SettingsPath.backup"
         Copy-Item -Path $SettingsPath -Destination $backupPath -Force
 
         # Read settings
