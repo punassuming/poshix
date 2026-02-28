@@ -26,10 +26,14 @@ function Find-FzfHistory {
     Fuzzy search through PowerShell command history.
     .DESCRIPTION
     Presents a deduplicated list of history entries in fzf. The selected
-    command is copied to the clipboard and inserted into the readline buffer.
+    command is inserted into the readline buffer. Optionally copies to clipboard.
+    .PARAMETER CopyToClipboard
+    When specified, also copies the selected command to the clipboard.
     #>
     [CmdletBinding()]
-    param()
+    param(
+        [switch]$CopyToClipboard
+    )
 
     if (-not (Test-FzfAvailable)) { return }
 
@@ -41,7 +45,9 @@ function Find-FzfHistory {
         $result = $unique | & fzf --height 40% --reverse --border --prompt "History> "
 
         if ($result) {
-            Set-Clipboard -Value $result
+            if ($CopyToClipboard) {
+                Set-Clipboard -Value $result
+            }
             try {
                 [Microsoft.PowerShell.PSConsoleReadLine]::Insert($result)
             } catch {

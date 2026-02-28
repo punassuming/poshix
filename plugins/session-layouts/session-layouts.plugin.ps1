@@ -3,21 +3,21 @@
 
 $script:LayoutsDir = Join-Path $HOME '.poshix' 'layouts'
 
-function _EnsureLayoutsDir {
+function Initialize-SessionLayoutsDir {
     if (-not (Test-Path $script:LayoutsDir)) {
         New-Item -ItemType Directory -Path $script:LayoutsDir -Force | Out-Null
         Write-Verbose "[poshix] session-layouts: created layouts directory at '$script:LayoutsDir'"
     }
 }
 
-function _GetLayoutPath {
+function Get-SessionLayoutPath {
     param([string]$Name)
     Join-Path $script:LayoutsDir "$Name.json"
 }
 
-function _LoadLayout {
+function Read-SessionLayout {
     param([string]$Name)
-    $path = _GetLayoutPath $Name
+    $path = Get-SessionLayoutPath $Name
     if (-not (Test-Path $path)) {
         Write-Warning "[poshix] session-layouts: layout '$Name' not found at '$path'"
         return $null
@@ -51,7 +51,7 @@ function Save-SessionLayout {
         [switch]$IncludeEnv
     )
 
-    _EnsureLayoutsDir
+    Initialize-SessionLayoutsDir
 
     Write-Verbose "[poshix] session-layouts: saving layout '$Name'"
 
@@ -73,7 +73,7 @@ function Save-SessionLayout {
         Write-Verbose "[poshix] session-layouts: captured $($envVars.Count) environment variable(s)"
     }
 
-    $path = _GetLayoutPath $Name
+    $path = Get-SessionLayoutPath $Name
     $existing = if (Test-Path $path) { Get-Content -Raw -Path $path | ConvertFrom-Json } else { $null }
     $createdAt = if ($existing) { $existing.CreatedAt } else { (Get-Date -Format 'o') }
 
@@ -109,7 +109,7 @@ function Restore-SessionLayout {
 
     Write-Verbose "[poshix] session-layouts: restoring layout '$Name'"
 
-    $layout = _LoadLayout $Name
+    $layout = Read-SessionLayout $Name
     if (-not $layout) { return }
 
     if (Test-Path $layout.Directory) {
@@ -144,7 +144,7 @@ function Get-SessionLayouts {
     [CmdletBinding()]
     param()
 
-    _EnsureLayoutsDir
+    Initialize-SessionLayoutsDir
 
     Write-Verbose "[poshix] session-layouts: listing layouts in '$script:LayoutsDir'"
 
@@ -186,7 +186,7 @@ function Remove-SessionLayout {
         [switch]$Force
     )
 
-    $path = _GetLayoutPath $Name
+    $path = Get-SessionLayoutPath $Name
     if (-not (Test-Path $path)) {
         Write-Warning "[poshix] session-layouts: layout '$Name' not found"
         return
@@ -227,7 +227,7 @@ function Add-LayoutBookmark {
 
     Write-Verbose "[poshix] session-layouts: adding bookmark '$BookmarkName' to layout '$Layout'"
 
-    $layoutPath = _GetLayoutPath $Layout
+    $layoutPath = Get-SessionLayoutPath $Layout
     if (-not (Test-Path $layoutPath)) {
         Write-Warning "[poshix] session-layouts: layout '$Layout' not found"
         return
@@ -283,7 +283,7 @@ function Invoke-LayoutBookmark {
 
     Write-Verbose "[poshix] session-layouts: navigating to bookmark '$BookmarkName' in layout '$Layout'"
 
-    $layoutData = _LoadLayout $Layout
+    $layoutData = Read-SessionLayout $Layout
     if (-not $layoutData) { return }
 
     if (-not $layoutData.Bookmarks) {
@@ -305,10 +305,11 @@ function Invoke-LayoutBookmark {
     }
 }
 
-# Export helper functions to global scope so public functions can resolve them
-Set-Item -Path "function:global:_EnsureLayoutsDir" -Value ${function:_EnsureLayoutsDir}
-Set-Item -Path "function:global:_GetLayoutPath"    -Value ${function:_GetLayoutPath}
-Set-Item -Path "function:global:_LoadLayout"       -Value ${function:_LoadLayout}
+# Export internal helper functions to global scope (required for globally-exported
+# public functions to resolve them at call time in the poshix plugin architecture)
+Set-Item -Path "function:global:Initialize-SessionLayoutsDir" -Value ${function:Initialize-SessionLayoutsDir}
+Set-Item -Path "function:global:Get-SessionLayoutPath"        -Value ${function:Get-SessionLayoutPath}
+Set-Item -Path "function:global:Read-SessionLayout"           -Value ${function:Read-SessionLayout}
 
 # Export public functions to global scope
 Set-Item -Path "function:global:Save-SessionLayout"    -Value ${function:Save-SessionLayout}
