@@ -283,15 +283,15 @@ function Invoke-LayoutBookmark {
 
     Write-Verbose "[poshix] session-layouts: navigating to bookmark '$BookmarkName' in layout '$Layout'"
 
-    $layout = _LoadLayout $Layout
-    if (-not $layout) { return }
+    $layoutData = _LoadLayout $Layout
+    if (-not $layoutData) { return }
 
-    if (-not $layout.Bookmarks) {
+    if (-not $layoutData.Bookmarks) {
         Write-Warning "[poshix] session-layouts: layout '$Layout' has no bookmarks"
         return
     }
 
-    $bookmark = $layout.Bookmarks | Where-Object { $_.Name -eq $BookmarkName } | Select-Object -First 1
+    $bookmark = $layoutData.Bookmarks | Where-Object { $_.Name -eq $BookmarkName } | Select-Object -First 1
     if (-not $bookmark) {
         Write-Warning "[poshix] session-layouts: bookmark '$BookmarkName' not found in layout '$Layout'"
         return
@@ -305,7 +305,12 @@ function Invoke-LayoutBookmark {
     }
 }
 
-# Export functions to global scope
+# Export helper functions to global scope so public functions can resolve them
+Set-Item -Path "function:global:_EnsureLayoutsDir" -Value ${function:_EnsureLayoutsDir}
+Set-Item -Path "function:global:_GetLayoutPath"    -Value ${function:_GetLayoutPath}
+Set-Item -Path "function:global:_LoadLayout"       -Value ${function:_LoadLayout}
+
+# Export public functions to global scope
 Set-Item -Path "function:global:Save-SessionLayout"    -Value ${function:Save-SessionLayout}
 Set-Item -Path "function:global:Restore-SessionLayout" -Value ${function:Restore-SessionLayout}
 Set-Item -Path "function:global:Get-SessionLayouts"    -Value ${function:Get-SessionLayouts}

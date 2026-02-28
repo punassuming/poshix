@@ -222,7 +222,8 @@ function Remove-GitWorktree {
     }
 }
 
-# Export functions to global scope
+# Export functions to global scope (helper first so dependents can resolve it)
+Set-Item -Path "function:global:Test-GitWorktreePrerequisites" -Value ${function:Test-GitWorktreePrerequisites}
 Set-Item -Path "function:global:Get-GitWorktrees" -Value ${function:Get-GitWorktrees}
 Set-Item -Path "function:global:New-GitWorktree" -Value ${function:New-GitWorktree}
 Set-Item -Path "function:global:Switch-GitWorktree" -Value ${function:Switch-GitWorktree}
