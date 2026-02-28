@@ -63,7 +63,7 @@ function Save-SessionLayout {
                             'PROGRAMFILES(X86)', 'COMMONPROGRAMFILES', 'PROGRAMDATA',
                             'ALLUSERSPROFILE', 'PUBLIC', 'COMPUTERNAME', 'USERNAME',
                             'USERDOMAIN', 'PROCESSOR_ARCHITECTURE', 'NUMBER_OF_PROCESSORS',
-                            'OS', 'PSMODULEPATH')
+                            'OS', 'PSModulePath')
         Get-ChildItem Env: | Where-Object {
             $name = $_.Name.ToUpper()
             -not ($systemPrefixes | Where-Object { $name -eq $_.ToUpper() })

@@ -48,7 +48,7 @@ Import-PoshixPlugin fzf-tools
 ### `Find-FzfHistory` / `fh`
 
 Fuzzy search through your PowerShell session history. The selected command is
-copied to the clipboard and inserted into the readline buffer.
+inserted into the readline buffer. Pass `-CopyToClipboard` to also copy it.
 
 ```powershell
 fh
