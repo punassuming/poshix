@@ -205,6 +205,8 @@ function Invoke-ProjectTask {
         if ($null -ne $matched) {
             $fullCmd = if ($Args) { "$matched $($Args -join ' ')" } else { $matched }
             Write-Host $fullCmd -ForegroundColor Cyan
+            # .poshix-tasks is a user-authored file in the project repo; the user is
+            # responsible for its contents, making Invoke-Expression acceptable here.
             Invoke-Expression $fullCmd
             return
         }
