@@ -451,13 +451,108 @@ Keybindings:
 
 See [plugins/windows-terminal/README.md](plugins/windows-terminal/README.md) for details.
 
-### Plugin Ideas for Command Line Gurus
+#### git-worktree
+Git worktree management helpers for fast create/switch/prune workflows.
 
-- **git-worktree**: Fast worktree create/switch/prune helpers
-- **session-layouts**: Save/restore cwd, tabs, and pane/task layouts
-- **fzf-tools**: Fuzzy wrappers for history, files, branches, and processes
-- **k8s-context**: Kubernetes context/namespace switch and prompt indicators
-- **task-runner**: Project command aliases with per-repo task discovery
+```powershell
+# Enable in config
+$config = @{ Plugins = @('git-worktree') }
+Set-PoshixConfig -Config $config
+Save-PoshixConfig
+
+# Or load manually
+Import-PoshixPlugin -Name 'git-worktree'
+
+# List all worktrees
+gwt
+
+# Create a new worktree and cd into it
+gwt-add -Branch feature/my-feature
+
+# Switch to an existing worktree by branch name
+gwt-switch feature/my-feature
+
+# Remove a worktree
+gwt-rm feature/my-feature
+```
+
+See [plugins/git-worktree/README.md](plugins/git-worktree/README.md) for details.
+
+#### fzf-tools
+Fuzzy-finding wrappers using [fzf](https://github.com/junegunn/fzf) for history, files, branches, and processes.
+
+Requires fzf: `winget install junegunn.fzf` / `scoop install fzf` / `choco install fzf`
+
+```powershell
+# Enable in config
+$config = @{ Plugins = @('fzf-tools') }
+Set-PoshixConfig -Config $config
+Save-PoshixConfig
+
+fh   # fuzzy search command history → insert selected into readline buffer
+ff   # fuzzy find files under current directory
+fb   # fuzzy pick a git branch and check it out
+fp   # fuzzy select running processes and kill them
+```
+
+See [plugins/fzf-tools/README.md](plugins/fzf-tools/README.md) for details.
+
+#### k8s-context
+Kubernetes context and namespace management with prompt indicator support.
+
+```powershell
+# Enable in config
+$config = @{ Plugins = @('k8s-context') }
+Set-PoshixConfig -Config $config
+Save-PoshixConfig
+
+kctx               # show current context
+kctx -List         # list all contexts
+kctx -Name prod    # switch to 'prod' context
+kns                # show current namespace
+kns -Name staging  # switch to 'staging' namespace
+kinfo              # show context, namespace, and cluster
+```
+
+`Get-KubePromptInfo` returns `⎈ context/namespace` for use in custom prompt segments.
+
+See [plugins/k8s-context/README.md](plugins/k8s-context/README.md) for details.
+
+#### task-runner
+Unified project task discovery and execution across `package.json`, `Makefile`, `Taskfile.yml`, and `.poshix-tasks`.
+
+```powershell
+# Enable in config
+$config = @{ Plugins = @('task-runner') }
+Set-PoshixConfig -Config $config
+Save-PoshixConfig
+
+tasks             # list all available tasks in the current project
+task build        # run the 'build' task
+task test -- -v   # run 'test' with extra args
+task-init         # scaffold a .poshix-tasks file
+```
+
+See [plugins/task-runner/README.md](plugins/task-runner/README.md) for details.
+
+#### session-layouts
+Save and restore shell session state (working directory, environment variables, directory bookmarks).
+
+```powershell
+# Enable in config
+$config = @{ Plugins = @('session-layouts') }
+Set-PoshixConfig -Config $config
+Save-PoshixConfig
+
+layout-save myproject               # save current directory as 'myproject'
+layout-restore myproject            # restore directory from 'myproject'
+layouts                             # list all saved layouts
+layout-rm myproject                 # delete a layout
+bookmark myproject docs ~/docs      # add a bookmark to a layout
+bm myproject docs                   # cd to a bookmarked directory
+```
+
+See [plugins/session-layouts/README.md](plugins/session-layouts/README.md) for details.
 
 ### Plugin Auto-Registration Features
 
