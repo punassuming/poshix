@@ -137,6 +137,8 @@
     "k8s-context",
     "task-runner",
     "session-layouts",
+    "autohotkey",
+    "tortoisegit",
     "starship"
   ],
   "Theme": "nord"
