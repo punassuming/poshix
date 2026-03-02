@@ -68,7 +68,7 @@ bm myproject docs
 
 ## Enabling the plugin
 
-Add `session-layouts` to the `Plugins` list in your poshix config (`~/.poshix/config.json`):
+Add `session-layouts` to the `Plugins` list in your poshix config (`~/.poshixrc.json`):
 
 ```json
 {
@@ -81,3 +81,4 @@ Or load it manually in your profile:
 ```powershell
 Import-PoshixPlugin session-layouts
 ```
+

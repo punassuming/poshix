@@ -57,7 +57,7 @@ deploy: ./scripts/deploy.sh production
 
 ## Enabling the plugin
 
-Add `task-runner` to the `Plugins` list in your poshix config (`~/.poshix/config.json`):
+Add `task-runner` to the `Plugins` list in your poshix config (`~/.poshixrc.json`):
 
 ```json
 {
@@ -70,3 +70,4 @@ Or load it manually in your profile:
 ```powershell
 Import-PoshixPlugin task-runner
 ```
+

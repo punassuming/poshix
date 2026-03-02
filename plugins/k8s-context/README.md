@@ -49,7 +49,7 @@ function prompt {
 
 ## Enabling the plugin
 
-Add `k8s-context` to the `Plugins` list in your poshix config (`~/.poshix/config.json`):
+Add `k8s-context` to the `Plugins` list in your poshix config (`~/.poshixrc.json`):
 
 ```json
 {
@@ -62,3 +62,4 @@ Or load it manually in your profile:
 ```powershell
 Import-PoshixPlugin k8s-context
 ```
+

@@ -38,7 +38,7 @@ Tab completion is available for `-Name` on `gwt-switch` and `-Path`/`-Name` on `
 
 ## Enabling the plugin
 
-Add `git-worktree` to the `Plugins` list in your poshix config (`~/.poshix/config.json`):
+Add `git-worktree` to the `Plugins` list in your poshix config (`~/.poshixrc.json`):
 
 ```json
 {
@@ -51,3 +51,4 @@ Or load it manually in your profile:
 ```powershell
 Import-PoshixPlugin git-worktree
 ```
+

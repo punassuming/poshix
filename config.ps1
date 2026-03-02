@@ -51,8 +51,9 @@ $script:PoshixConfig = @{
     Theme = $null  # Active theme name (null = no theme / use plugin prompt)
 }
 
-# Configuration file path
-$script:ConfigPath = Join-Path $env:USERPROFILE '.poshix_config.json'
+# Configuration file paths (canonical + legacy fallback)
+$script:ConfigPath = Join-Path $env:USERPROFILE '.poshixrc.json'
+$script:LegacyConfigPath = Join-Path $env:USERPROFILE '.poshix_config.json'
 
 function Get-PoshixConfig {
     <#
@@ -104,13 +105,21 @@ function Import-PoshixConfig {
     .SYNOPSIS
     Load configuration from disk
     #>
+    $loadPath = $null
     if (Test-Path $script:ConfigPath) {
+        $loadPath = $script:ConfigPath
+    } elseif (Test-Path $script:LegacyConfigPath) {
+        $loadPath = $script:LegacyConfigPath
+        Write-Verbose "Using legacy config path: $script:LegacyConfigPath"
+    }
+
+    if ($loadPath) {
         try {
-            $loaded = Get-Content -Path $script:ConfigPath -Raw | ConvertFrom-Json
+            $loaded = Get-Content -Path $loadPath -Raw | ConvertFrom-Json
             # Convert PSCustomObject to hashtable recursively
             $config = ConvertTo-Hashtable $loaded
             Set-PoshixConfig -Config $config
-            Write-Verbose "Configuration loaded from $script:ConfigPath"
+            Write-Verbose "Configuration loaded from $loadPath"
         } catch {
             Write-Warning "Failed to load configuration: $_"
         }

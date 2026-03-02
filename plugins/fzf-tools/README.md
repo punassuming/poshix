@@ -20,7 +20,7 @@ Fuzzy-finding wrappers for [poshix](https://github.com/nickvdyck/poshix), powere
 
 ## Enabling the plugin
 
-Add `fzf-tools` to the `Plugins` list in your poshix config (`~/.poshix/config.json`):
+Add `fzf-tools` to the `Plugins` list in your poshix config (`~/.poshixrc.json`):
 
 ```json
 {
@@ -90,3 +90,4 @@ Prompts for confirmation before killing the selected processes.
 ```powershell
 fp
 ```
+

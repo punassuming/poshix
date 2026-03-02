@@ -1,0 +1,143 @@
+{
+  "Colors": {
+    "Directory": "Blue",
+    "HiddenDirectory": "DarkCyan",
+    "Symlink": "Cyan",
+    "FileSymlink": "DarkGreen",
+    "HiddenFile": "DarkGray",
+    "ExecutableFile": "Green",
+    "ArchiveFile": "Red",
+    "ImageFile": "Magenta",
+    "VideoFile": "Magenta",
+    "AudioFile": "DarkMagenta",
+    "DocumentFile": "Yellow",
+    "File": "Green",
+    "FileNoExtension": "White"
+  },
+  "FileTypes": {
+    "Executable": [
+      ".exe",
+      ".bat",
+      ".cmd",
+      ".ps1",
+      ".sh",
+      ".bash",
+      ".zsh"
+    ],
+    "Archive": [
+      ".zip",
+      ".tar",
+      ".gz",
+      ".bz2",
+      ".7z",
+      ".rar",
+      ".tgz",
+      ".xz"
+    ],
+    "Image": [
+      ".jpg",
+      ".jpeg",
+      ".png",
+      ".gif",
+      ".bmp",
+      ".svg",
+      ".ico",
+      ".webp"
+    ],
+    "Video": [
+      ".mp4",
+      ".avi",
+      ".mkv",
+      ".mov",
+      ".wmv",
+      ".flv",
+      ".webm"
+    ],
+    "Audio": [
+      ".mp3",
+      ".wav",
+      ".flac",
+      ".aac",
+      ".ogg",
+      ".wma",
+      ".m4a"
+    ],
+    "Document": [
+      ".pdf",
+      ".doc",
+      ".docx",
+      ".txt",
+      ".md",
+      ".rtf",
+      ".odt"
+    ]
+  },
+  "History": {
+    "MaxSize": 4096,
+    "SavePath": "C:/Users/your-user/.poshix_history"
+  },
+  "Startup": {
+    "Verbose": false,
+    "LoadHistory": true
+  },
+  "Prompt": {
+    "Segments": [
+      {
+        "Type": "user",
+        "Enabled": false,
+        "Color": "Green"
+      },
+      {
+        "Type": "host",
+        "Enabled": false,
+        "Color": "Cyan"
+      },
+      {
+        "Type": "path",
+        "Enabled": true,
+        "Color": "Blue",
+        "MaxLength": 50
+      },
+      {
+        "Type": "git",
+        "Enabled": true,
+        "Color": "Green",
+        "DirtyColor": "Yellow"
+      },
+      {
+        "Type": "error",
+        "Enabled": true,
+        "Color": "Red",
+        "Character": "✗"
+      },
+      {
+        "Type": "time",
+        "Enabled": false,
+        "Color": "DarkGray",
+        "Format": "HH:mm:ss"
+      },
+      {
+        "Type": "char",
+        "Enabled": true,
+        "Color": "Magenta",
+        "AdminColor": "Red",
+        "Character": "❯",
+        "AdminCharacter": "#"
+      }
+    ],
+    "Separator": " ",
+    "Newline": false
+  },
+  "Plugins": [
+    "completions",
+    "themes",
+    "windows-terminal",
+    "git-worktree",
+    "fzf-tools",
+    "k8s-context",
+    "task-runner",
+    "session-layouts",
+    "starship"
+  ],
+  "Theme": "nord"
+}

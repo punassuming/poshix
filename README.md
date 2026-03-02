@@ -189,6 +189,22 @@ clear                        # Clear screen
 
 ## Configuration
 
+Poshix loads configuration from:
+
+`~/.poshixrc.json`
+
+Backward compatibility: if `~/.poshixrc.json` does not exist, poshix will read `~/.poshix_config.json`.
+
+This repository includes an up-to-date template:
+
+`./.poshixrc.json`
+
+You can copy it to your user config path and then customize:
+
+```powershell
+Copy-Item .\.poshixrc.json "$HOME\.poshixrc.json" -Force
+```
+
 ### Get Current Configuration
 ```powershell
 Get-PoshixConfig
