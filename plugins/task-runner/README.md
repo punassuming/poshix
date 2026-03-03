@@ -18,6 +18,7 @@ Per-project task discovery and execution for [poshix](https://github.com/nickvdy
 | `Makefile` | `make <name>` (or `gmake`) |
 | `Taskfile.yml` / `Taskfile.yaml` | `task <name>` ([go-task](https://taskfile.dev)) |
 | `.poshix-tasks` | shell command from the file |
+| `.vscode/tasks.json` | shell command from the task definition |
 
 All supported files in the current directory are discovered simultaneously.
 
