@@ -10,8 +10,9 @@ BeforeAll {
     $script:makeDir       = Join-Path $TestDrive 'make-project'
     $script:poshixDir     = Join-Path $TestDrive 'poshix-project'
     $script:taskInitDir   = Join-Path $TestDrive 'task-init'
+    $script:vscodeDir     = Join-Path $TestDrive 'vscode-project'
 
-    foreach ($d in @($script:emptyDir, $script:npmDir, $script:makeDir, $script:poshixDir, $script:taskInitDir)) {
+    foreach ($d in @($script:emptyDir, $script:npmDir, $script:makeDir, $script:poshixDir, $script:taskInitDir, $script:vscodeDir)) {
         New-Item -ItemType Directory -Path $d -Force | Out-Null
     }
 
@@ -36,6 +37,16 @@ test:
 greet: echo hello
 deploy: echo deploying
 "@ | Set-Content -Path (Join-Path $script:poshixDir '.poshix-tasks') -Encoding UTF8
+
+    # .vscode/tasks.json file
+    New-Item -ItemType Directory -Path (Join-Path $script:vscodeDir '.vscode') -Force | Out-Null
+    @{
+        version = '2.0.0'
+        tasks   = @(
+            [ordered]@{ label = 'build'; type = 'shell'; command = 'echo building' }
+            [ordered]@{ label = 'test';  type = 'shell'; command = 'echo testing'; detail = 'Run unit tests' }
+        )
+    } | ConvertTo-Json -Depth 5 | Set-Content -Path (Join-Path $script:vscodeDir '.vscode' 'tasks.json') -Encoding UTF8
 }
 
 Describe 'Task Runner Plugin' {
@@ -116,6 +127,28 @@ Describe 'Task Runner Plugin' {
         It 'Invoke-ProjectTask should execute a task defined in .poshix-tasks' {
             Push-Location $script:poshixDir
             Invoke-ProjectTask -Name 'greet' -WarningVariable warnVar -WarningAction SilentlyContinue 2>&1 | Out-Null
+            Pop-Location
+            $warnVar | Where-Object { $_ -match 'no task named' } | Should -BeNullOrEmpty
+        }
+    }
+
+    Context 'Get-ProjectTasks with .vscode/tasks.json' {
+        It 'Should not throw' {
+            Push-Location $script:vscodeDir
+            { Get-ProjectTasks } | Should -Not -Throw
+            Pop-Location
+        }
+
+        It 'Invoke-ProjectTask should find a shell task defined in .vscode/tasks.json' {
+            Push-Location $script:vscodeDir
+            Invoke-ProjectTask -Name 'build' -WarningVariable warnVar -WarningAction SilentlyContinue 2>&1 | Out-Null
+            Pop-Location
+            $warnVar | Where-Object { $_ -match 'no task named' } | Should -BeNullOrEmpty
+        }
+
+        It 'Invoke-ProjectTask should find a task with detail in .vscode/tasks.json' {
+            Push-Location $script:vscodeDir
+            Invoke-ProjectTask -Name 'test' -WarningVariable warnVar -WarningAction SilentlyContinue 2>&1 | Out-Null
             Pop-Location
             $warnVar | Where-Object { $_ -match 'no task named' } | Should -BeNullOrEmpty
         }

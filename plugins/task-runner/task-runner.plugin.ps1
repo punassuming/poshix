@@ -97,9 +97,37 @@ function Get-ProjectTasks {
         }
     }
 
+    # --- .vscode/tasks.json ---
+    if (Test-Path '.vscode/tasks.json') {
+        Write-Verbose "[poshix] task-runner: reading .vscode/tasks.json tasks"
+        try {
+            $vscodeTasksFile = Get-Content '.vscode/tasks.json' -Raw | ConvertFrom-Json
+            if ($vscodeTasksFile.tasks) {
+                $vscodeTasksFile.tasks | ForEach-Object {
+                    $desc = if ($_.detail) {
+                        $d = $_.detail
+                        if ($d.Length -gt 60) { $d.Substring(0, 57) + '...' } else { $d }
+                    } elseif ($_.command) {
+                        $c = $_.command
+                        if ($c.Length -gt 60) { $c.Substring(0, 57) + '...' } else { $c }
+                    } else {
+                        $_.type
+                    }
+                    $tasks.Add([PSCustomObject]@{
+                        Source      = '.vscode/tasks.json'
+                        Name        = $_.label
+                        Description = $desc
+                    })
+                }
+            }
+        } catch {
+            Write-Warning "[poshix] task-runner: failed to parse .vscode/tasks.json: $_"
+        }
+    }
+
     if ($tasks.Count -eq 0) {
         Write-Host "No task files found in the current directory." -ForegroundColor Yellow
-        Write-Host "Supported files: package.json, Makefile, Taskfile.yml, .poshix-tasks" -ForegroundColor Yellow
+        Write-Host "Supported files: package.json, Makefile, Taskfile.yml, .poshix-tasks, .vscode/tasks.json" -ForegroundColor Yellow
         Write-Host "Run 'task-init' to create a .poshix-tasks file." -ForegroundColor Yellow
         return
     }
@@ -209,6 +237,38 @@ function Invoke-ProjectTask {
             # responsible for its contents, making Invoke-Expression acceptable here.
             Invoke-Expression $fullCmd
             return
+        }
+    }
+
+    # --- .vscode/tasks.json ---
+    if (Test-Path '.vscode/tasks.json') {
+        try {
+            $vscodeTasksFile = Get-Content '.vscode/tasks.json' -Raw | ConvertFrom-Json
+            $vscodeTask = $vscodeTasksFile.tasks | Where-Object { $_.label -eq $Name } | Select-Object -First 1
+            if ($vscodeTask) {
+                if (-not $vscodeTask.command) {
+                    Write-Warning "[poshix] task-runner: VSCode task '$Name' has no command defined"
+                    return
+                }
+                $taskArgs = @()
+                if ($vscodeTask.args) { $taskArgs += $vscodeTask.args }
+                if ($Args) { $taskArgs += $Args }
+                if ($vscodeTask.type -eq 'process') {
+                    $cmdDisplay = "$($vscodeTask.command) $($taskArgs -join ' ')".Trim()
+                    Write-Host $cmdDisplay -ForegroundColor Cyan
+                    & $vscodeTask.command @taskArgs
+                } else {
+                    # shell type or default - run as shell command
+                    $fullCmd = "$($vscodeTask.command) $($taskArgs -join ' ')".Trim()
+                    Write-Host $fullCmd -ForegroundColor Cyan
+                    # .vscode/tasks.json is a user-authored file in the project repo; the user is
+                    # responsible for its contents, making Invoke-Expression acceptable here.
+                    Invoke-Expression $fullCmd
+                }
+                return
+            }
+        } catch {
+            Write-Warning "[poshix] task-runner: failed to parse .vscode/tasks.json: $_"
         }
     }
 
