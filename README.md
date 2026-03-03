@@ -551,6 +551,38 @@ task-init         # scaffold a .poshix-tasks file
 
 See [plugins/task-runner/README.md](plugins/task-runner/README.md) for details.
 
+#### autohotkey
+Helpers for launching and editing AutoHotkey scripts.
+
+```powershell
+# Enable in config
+$config = @{ Plugins = @('autohotkey') }
+Set-PoshixConfig -Config $config
+Save-PoshixConfig
+
+ahk .\main.ahk                  # run script
+ahk .\main.ahk -- myArg         # run script with extra args
+ahk-edit .\main.ahk             # open script in default editor
+```
+
+See [plugins/autohotkey/README.md](plugins/autohotkey/README.md) for details.
+
+#### tortoisegit
+Helper command for opening TortoiseGit dialogs from PowerShell.
+
+```powershell
+# Enable in config
+$config = @{ Plugins = @('tortoisegit') }
+Set-PoshixConfig -Config $config
+Save-PoshixConfig
+
+tgit                 # open log dialog for current directory
+tgit commit .        # open commit dialog
+tgit push .          # open push dialog
+```
+
+See [plugins/tortoisegit/README.md](plugins/tortoisegit/README.md) for details.
+
 #### session-layouts
 Save and restore shell session state (working directory, environment variables, directory bookmarks).
 
