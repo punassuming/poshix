@@ -1,0 +1,6 @@
+{
+  "Name": "docker",
+  "Description": "WSL-aware Docker helpers with Compose shortcuts and prompt status support.",
+  "Commands": ["dkr", "dco", "dps", "dinfo", "Get-DockerPromptInfo"],
+  "Requires": ["docker or wsl"]
+}

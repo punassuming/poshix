@@ -66,6 +66,34 @@ Describe "Prompt Segments" {
             Pop-Location
         }
     }
+
+    It "Docker segment renders when Get-DockerPromptInfo is available" {
+        Set-Item -Path Function:\global:Get-DockerPromptInfo -Value {
+            [PSCustomObject]@{
+                Text = 'docker[test] api 2/3 web,db'
+                RunningContainers = 2
+            }
+        }
+
+        Set-PoshixConfig -Config @{
+            Prompt = @{
+                Segments = @(
+                    @{ Type = 'docker'; Enabled = $true; ActiveColor = 'Cyan'; MaxItems = 2 }
+                    @{ Type = 'char'; Enabled = $true; Character = '>' }
+                )
+                Separator = ' '
+                Newline = $false
+            }
+        }
+
+        try {
+            $prompt = Get-PoshixPrompt
+            $prompt | Should -Match 'docker\[test\] api 2/3 web,db'
+        } finally {
+            Remove-Item Function:\global:Get-DockerPromptInfo -ErrorAction SilentlyContinue
+            Reset-PoshixConfig
+        }
+    }
 }
 
 Describe "Prompt Configuration" {

@@ -113,6 +113,60 @@ function Get-PromptTimeSegment {
     }
 }
 
+function Get-PromptDockerSegment {
+    param([hashtable]$Config)
+
+    $dockerPromptCommand = Get-Command Get-DockerPromptInfo -ErrorAction SilentlyContinue
+    if (-not $dockerPromptCommand) {
+        return $null
+    }
+
+    $dockerPromptParams = @{}
+    if ($Config.ContainsKey('ShowContext')) {
+        $dockerPromptParams.ShowContext = [bool]$Config.ShowContext
+    }
+    if ($Config.ContainsKey('ShowProject')) {
+        $dockerPromptParams.ShowProject = [bool]$Config.ShowProject
+    }
+    if ($Config.ContainsKey('MaxItems')) {
+        $dockerPromptParams.MaxItems = [int]$Config.MaxItems
+    }
+    if ($Config.ContainsKey('CacheSeconds')) {
+        $dockerPromptParams.CacheSeconds = [int]$Config.CacheSeconds
+    }
+
+    $dockerInfo = & $dockerPromptCommand @dockerPromptParams
+    if (-not $dockerInfo) {
+        return $null
+    }
+
+    $text = $null
+    $runningContainers = 0
+    if ($dockerInfo -is [string]) {
+        $text = $dockerInfo
+    } else {
+        $text = $dockerInfo.Text
+        if ($dockerInfo.PSObject.Properties.Name -contains 'RunningContainers') {
+            $runningContainers = [int]$dockerInfo.RunningContainers
+        }
+    }
+
+    if ([string]::IsNullOrWhiteSpace($text)) {
+        return $null
+    }
+
+    $color = if ($runningContainers -gt 0) {
+        if ($Config.ActiveColor) { $Config.ActiveColor } else { 'Cyan' }
+    } else {
+        if ($Config.Color) { $Config.Color } else { 'DarkCyan' }
+    }
+
+    return @{
+        Text = $text
+        Color = $color
+    }
+}
+
 function Get-PromptErrorSegment {
     param([hashtable]$Config)
     
@@ -180,6 +234,7 @@ function Get-PoshixPrompt {
         @{ Type = 'host'; Enabled = $false }
         @{ Type = 'path'; Enabled = $true; MaxLength = 50 }
         @{ Type = 'git'; Enabled = $true }
+        @{ Type = 'docker'; Enabled = $false; MaxItems = 2 }
         @{ Type = 'error'; Enabled = $true }
         @{ Type = 'time'; Enabled = $false }
         @{ Type = 'char'; Enabled = $true }
@@ -203,6 +258,7 @@ function Get-PoshixPrompt {
             'host' { $segment = Get-PromptHostSegment -Config $segmentConfig }
             'path' { $segment = Get-PromptPathSegment -Config $segmentConfig }
             'git'  { $segment = Get-PromptGitSegment -Config $segmentConfig }
+            'docker' { $segment = Get-PromptDockerSegment -Config $segmentConfig }
             'time' { $segment = Get-PromptTimeSegment -Config $segmentConfig }
             'error' { $segment = Get-PromptErrorSegment -Config $segmentConfig }
             'char' { $segment = Get-PromptCharSegment -Config $segmentConfig }

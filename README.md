@@ -76,6 +76,7 @@ Poshix includes a built-in segment-based prompt engine that displays contextual 
 - **Modular segments**: Each piece of information (path, git status, time, etc.) is a separate segment
 - **Colored output**: Each segment can have custom colors
 - **Git integration**: Automatically shows branch and dirty status when in a git repository
+- **Docker integration**: Optional prompt segment for Compose-aware container status
 - **Cross-platform**: Works on Windows, Linux, and macOS
 - **Configurable**: Customize which segments to show and their appearance
 - **Plugin-compatible**: Automatically disabled when using Starship or other prompt plugins
@@ -96,6 +97,7 @@ Example: `~/work/poshix/poshix copilot/implement-segment-based-prompt-engine* �
 - **host**: Computer/hostname
 - **path**: Current directory (with home shortening and optional length limit)
 - **git**: Git branch and dirty status (`*` when uncommitted changes)
+- **docker**: Docker or Docker Compose status from the `docker` plugin
 - **time**: Current time
 - **error**: Error indicator when previous command failed
 - **char**: Prompt character (changes for admin/root)
@@ -112,6 +114,7 @@ $promptConfig = @{
             @{ Type = 'host'; Enabled = $true; Color = 'Cyan' }
             @{ Type = 'path'; Enabled = $true; Color = 'Blue'; MaxLength = 50 }
             @{ Type = 'git'; Enabled = $true; Color = 'Green'; DirtyColor = 'Yellow' }
+            @{ Type = 'docker'; Enabled = $true; Color = 'DarkCyan'; ActiveColor = 'Cyan'; ShowContext = $true; ShowProject = $true; MaxItems = 2; CacheSeconds = 3 }
             @{ Type = 'time'; Enabled = $true; Color = 'DarkGray'; Format = 'HH:mm:ss' }
             @{ Type = 'error'; Enabled = $true; Color = 'Red'; Character = '✗' }
             @{ Type = 'char'; Enabled = $true; Color = 'Magenta'; AdminColor = 'Red'; Character = '❯'; AdminCharacter = '#' }
@@ -203,6 +206,25 @@ This repository includes an up-to-date template:
 `./.poshixrc.json`
 
 The default in-memory config starts with `Plugins = @()`, so poshix does not auto-enable plugins unless you opt in. The `./.poshixrc.json` file in the repository root is a reference starter profile that demonstrates enabling multiple built-in plugins and prompt settings.
+
+Docker backend selection is configured under `Docker`:
+
+```powershell
+$config = @{
+    Docker = @{
+        Mode = 'Wsl'          # Auto, Native, or Wsl
+        Distribution = 'Ubuntu'
+        Prompt = @{
+            ShowContext = $true
+            ShowProject = $true
+            MaxItems = 2
+            CacheSeconds = 3
+        }
+    }
+}
+Set-PoshixConfig -Config $config
+Save-PoshixConfig
+```
 
 You can copy the root template to your user config path and then customize:
 
@@ -472,6 +494,36 @@ npm run <Tab>        # Suggests scripts from package.json
 ```
 
 See [plugins/completions/README.md](plugins/completions/README.md) for detailed documentation.
+
+#### docker
+WSL-aware Docker helpers with Compose shortcuts and prompt status support.
+
+```powershell
+# Enable in config
+$config = @{
+    Plugins = @('docker', 'completions')
+    Docker = @{
+        Mode = 'Wsl'
+        Distribution = 'Ubuntu'
+    }
+}
+Set-PoshixConfig -Config $config
+Save-PoshixConfig
+
+# Generic Docker and Compose wrappers
+dkr ps
+dco up -d
+
+# Inspect backend and prompt status details
+Get-DockerBackendInfo
+dps
+```
+
+When `Docker.Mode` is `Wsl`, or when no native Docker CLI is available, the plugin also exposes a `docker` command proxy for the current session so existing `docker compose ...` workflows keep working.
+
+`Get-DockerPromptInfo` returns a compact Compose-aware status string for use by the native prompt engine.
+
+See [plugins/docker/README.md](plugins/docker/README.md) for details.
 
 #### Starship
 Modern cross-shell prompt with extensive customization.

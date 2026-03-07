@@ -56,6 +56,7 @@ Describe "Plugin Loader" {
             $catalog = Get-PoshixPluginCatalog | Where-Object Scope -eq 'Built-in'
 
             $catalog.Name | Should -Contain 'completions'
+            $catalog.Name | Should -Contain 'docker'
             $catalog.Name | Should -Contain 'themes'
             $catalog.Name | Should -Contain 'windows-terminal'
             $catalog.Name | Should -Contain 'git-worktree'

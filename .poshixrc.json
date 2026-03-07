@@ -182,6 +182,16 @@
     "Verbose": false,
     "LoadHistory": true
   },
+  "Docker": {
+    "Mode": "Auto",
+    "Distribution": null,
+    "Prompt": {
+      "ShowContext": true,
+      "ShowProject": true,
+      "MaxItems": 2,
+      "CacheSeconds": 3
+    }
+  },
   "Prompt": {
     "Segments": [
       {
@@ -205,6 +215,16 @@
         "Enabled": true,
         "Color": "Green",
         "DirtyColor": "Yellow"
+      },
+      {
+        "Type": "docker",
+        "Enabled": true,
+        "Color": "DarkCyan",
+        "ActiveColor": "Cyan",
+        "ShowContext": true,
+        "ShowProject": true,
+        "MaxItems": 2,
+        "CacheSeconds": 3
       },
       {
         "Type": "error",
@@ -232,6 +252,7 @@
   },
   "Plugins": [
     "completions",
+    "docker",
     "themes",
     "windows-terminal",
     "git-worktree",
