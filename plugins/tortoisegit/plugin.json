@@ -1,0 +1,6 @@
+{
+  "Name": "tortoisegit",
+  "Description": "Helper command for opening TortoiseGit dialogs from PowerShell.",
+  "Commands": ["tgit"],
+  "Requires": ["TortoiseGit"]
+}

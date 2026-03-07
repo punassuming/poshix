@@ -4,6 +4,96 @@
 # Track loaded plugins
 $script:LoadedPlugins = @{}
 
+function Get-PoshixPluginMetadata {
+    param(
+        [Parameter(Mandatory)]
+        [string]$PluginDirectory,
+
+        [Parameter(Mandatory)]
+        [string]$Scope
+    )
+
+    $pluginName = Split-Path $PluginDirectory -Leaf
+    $pluginFile = Join-Path $PluginDirectory "$pluginName.plugin.ps1"
+    if (-not (Test-Path $pluginFile)) {
+        return $null
+    }
+
+    $metadataPath = Join-Path $PluginDirectory "plugin.json"
+    $readmePath = Join-Path $PluginDirectory "README.md"
+    $metadata = $null
+
+    if (Test-Path $metadataPath) {
+        try {
+            $metadata = Get-Content -Path $metadataPath -Raw | ConvertFrom-Json
+        } catch {
+            Write-Warning "[poshix] Failed to parse plugin metadata for '$pluginName': $_"
+        }
+    }
+
+    $description = $null
+    if ($metadata -and $metadata.Description) {
+        $description = $metadata.Description
+    } elseif (Test-Path $readmePath) {
+        $description = Get-Content $readmePath |
+            ForEach-Object { $_.Trim() } |
+            Where-Object { $_ -and $_ -notmatch '^#' } |
+            Select-Object -First 1
+    }
+
+    $commands = @()
+    if ($metadata -and $null -ne $metadata.Commands) {
+        $commands = @($metadata.Commands) | Where-Object { $_ }
+    }
+
+    $requires = @()
+    if ($metadata -and $null -ne $metadata.Requires) {
+        $requires = @($metadata.Requires) | Where-Object { $_ }
+    }
+
+    [PSCustomObject]@{
+        Name = $pluginName
+        Scope = $Scope
+        Loaded = $script:LoadedPlugins.ContainsKey($pluginName)
+        Description = $description
+        Commands = $commands
+        Requires = $requires
+        Path = $pluginFile
+        MetadataPath = if (Test-Path $metadataPath) { $metadataPath } else { $null }
+        ReadmePath = if (Test-Path $readmePath) { $readmePath } else { $null }
+    }
+}
+
+function Get-PoshixPluginCatalog {
+    <#
+    .SYNOPSIS
+    Get structured metadata for available poshix plugins.
+    .DESCRIPTION
+    Scans built-in and custom plugin directories and returns plugin metadata that
+    can be used for discovery, documentation, or richer CLI views.
+    #>
+    [CmdletBinding()]
+    param()
+
+    $catalog = @()
+    $pluginSources = @(
+        @{ Scope = 'Built-in'; Path = (Join-Path $script:PoshixPath "plugins") },
+        @{ Scope = 'Custom'; Path = (Join-Path $env:USERPROFILE ".poshix/plugins") }
+    )
+
+    foreach ($source in $pluginSources) {
+        if (-not (Test-Path $source.Path)) {
+            continue
+        }
+
+        $catalog += Get-ChildItem $source.Path -Directory | ForEach-Object {
+            Get-PoshixPluginMetadata -PluginDirectory $_.FullName -Scope $source.Scope
+        }
+    }
+
+    $catalog | Where-Object { $_ } | Sort-Object Scope, Name
+}
+
 function Import-PoshixPlugin {
     <#
     .SYNOPSIS
@@ -109,7 +199,8 @@ function Get-PoshixPlugin {
     [CmdletBinding()]
     param(
         [switch]$Loaded,
-        [switch]$Available
+        [switch]$Available,
+        [switch]$Detailed
     )
     
     if ($Loaded -or (-not $Available -and -not $Loaded)) {
@@ -127,25 +218,55 @@ function Get-PoshixPlugin {
     
     if ($Available) {
         $customPluginPath = Join-Path $env:USERPROFILE ".poshix/plugins"
-        $builtinPluginPath = Join-Path $script:PoshixPath "plugins"
-        
+        $catalog = Get-PoshixPluginCatalog
+
         Write-Host "`nBuilt-in Plugins:" -ForegroundColor Cyan
-        if (Test-Path $builtinPluginPath) {
-            Get-ChildItem $builtinPluginPath -Directory | ForEach-Object {
-                $status = if ($script:LoadedPlugins.ContainsKey($_.Name)) { "[loaded]" } else { "" }
-                Write-Host "  $($_.Name) " -ForegroundColor Green -NoNewline
-                Write-Host $status -ForegroundColor Yellow
+        $builtInPlugins = @($catalog | Where-Object Scope -eq 'Built-in')
+        if ($builtInPlugins.Count -gt 0) {
+            foreach ($plugin in $builtInPlugins) {
+                $status = if ($plugin.Loaded) { "[loaded]" } else { "" }
+                Write-Host "  $($plugin.Name) " -ForegroundColor Green -NoNewline
+                if ($status -and $Detailed) {
+                    Write-Host "$status " -ForegroundColor Yellow -NoNewline
+                }
+
+                if ($Detailed -and $plugin.Description) {
+                    Write-Host "- $($plugin.Description)" -ForegroundColor DarkGray
+                    if ($plugin.Commands.Count -gt 0) {
+                        Write-Host "    Commands: $($plugin.Commands -join ', ')" -ForegroundColor DarkGray
+                    }
+                    if ($plugin.Requires.Count -gt 0) {
+                        Write-Host "    Requires: $($plugin.Requires -join ', ')" -ForegroundColor DarkGray
+                    }
+                } else {
+                    Write-Host $status -ForegroundColor Yellow
+                }
             }
         } else {
             Write-Host "  (none)" -ForegroundColor DarkGray
         }
-        
+
         Write-Host "`nCustom Plugins ($customPluginPath):" -ForegroundColor Cyan
-        if (Test-Path $customPluginPath) {
-            Get-ChildItem $customPluginPath -Directory | ForEach-Object {
-                $status = if ($script:LoadedPlugins.ContainsKey($_.Name)) { "[loaded]" } else { "" }
-                Write-Host "  $($_.Name) " -ForegroundColor Green -NoNewline
-                Write-Host $status -ForegroundColor Yellow
+        $customPlugins = @($catalog | Where-Object Scope -eq 'Custom')
+        if ($customPlugins.Count -gt 0) {
+            foreach ($plugin in $customPlugins) {
+                $status = if ($plugin.Loaded) { "[loaded]" } else { "" }
+                Write-Host "  $($plugin.Name) " -ForegroundColor Green -NoNewline
+                if ($status -and $Detailed) {
+                    Write-Host "$status " -ForegroundColor Yellow -NoNewline
+                }
+
+                if ($Detailed -and $plugin.Description) {
+                    Write-Host "- $($plugin.Description)" -ForegroundColor DarkGray
+                    if ($plugin.Commands.Count -gt 0) {
+                        Write-Host "    Commands: $($plugin.Commands -join ', ')" -ForegroundColor DarkGray
+                    }
+                    if ($plugin.Requires.Count -gt 0) {
+                        Write-Host "    Requires: $($plugin.Requires -join ', ')" -ForegroundColor DarkGray
+                    }
+                } else {
+                    Write-Host $status -ForegroundColor Yellow
+                }
             }
         } else {
             Write-Host "  (none - directory not found)" -ForegroundColor DarkGray

@@ -1,0 +1,6 @@
+{
+  "Name": "themes",
+  "Description": "RGB color themes for poshix with optional Windows Terminal integration.",
+  "Commands": ["Get-PoshixThemes", "Get-PoshixTheme", "Set-PoshixTheme", "New-PoshixTheme"],
+  "Requires": []
+}

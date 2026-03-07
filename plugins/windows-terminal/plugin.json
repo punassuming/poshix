@@ -1,0 +1,6 @@
+{
+  "Name": "windows-terminal",
+  "Description": "Windows Terminal settings integration for themes and tmux-like keybindings.",
+  "Commands": ["Set-WindowsTerminalTheme", "Set-WindowsTerminalTmuxKeybindings"],
+  "Requires": []
+}

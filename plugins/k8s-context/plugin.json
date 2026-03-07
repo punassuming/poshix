@@ -1,0 +1,6 @@
+{
+  "Name": "k8s-context",
+  "Description": "Kubernetes context and namespace management helpers with prompt info support.",
+  "Commands": ["kctx", "kns", "kinfo", "Get-KubePromptInfo"],
+  "Requires": ["kubectl"]
+}

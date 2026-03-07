@@ -199,7 +199,9 @@ This repository includes an up-to-date template:
 
 `./.poshixrc.json`
 
-You can copy it to your user config path and then customize:
+The default in-memory config starts with `Plugins = @()`, so poshix does not auto-enable plugins unless you opt in. The `./.poshixrc.json` file in the repository root is a reference starter profile that demonstrates enabling multiple built-in plugins and prompt settings.
+
+You can copy the root template to your user config path and then customize:
 
 ```powershell
 Copy-Item .\.poshixrc.json "$HOME\.poshixrc.json" -Force
@@ -242,7 +244,7 @@ plugins/
     completions/                 # Optional: Tab completion scripts, auto-registered
       *.ps1
     README.md                   # Recommended: Documentation
-    plugin.json                 # Optional: Metadata (description, version, dependencies)
+    plugin.json                 # Optional: Metadata for discovery (description, commands, dependencies)
 ```
 
 ### Enabling Plugins
@@ -279,6 +281,8 @@ This allows you to override built-in plugins or create your own.
 Get-PoshixPlugin              # Show loaded plugins (default)
 Get-PoshixPlugin -Loaded      # Show only loaded plugins
 Get-PoshixPlugin -Available   # Show all available plugins (built-in and custom)
+Get-PoshixPlugin -Available -Detailed
+Get-PoshixPluginCatalog | Format-Table Name, Description, Commands
 ```
 
 #### Unload a Plugin
@@ -292,6 +296,26 @@ Remove-PoshixPlugin -Name 'starship'
 ```powershell
 Import-PoshixPlugin -Name 'starship' -Force
 ```
+
+### Plugin Discovery
+
+Poshix now includes lightweight plugin metadata manifests inspired by the catalog-style discovery found in frameworks like Oh My Zsh and Oh My Fish. Use them to quickly inspect what each built-in plugin adds before you enable it:
+
+```powershell
+# Quick catalog view
+Get-PoshixPlugin -Available -Detailed
+
+# Structured metadata for scripting / custom formatting
+Get-PoshixPluginCatalog |
+    Sort-Object Name |
+    Format-Table Name, Description, Commands, Requires
+```
+
+The built-in `plugin.json` manifests surface:
+
+- A short plugin description
+- Common commands or aliases exposed by the plugin
+- External dependencies or prerequisites when applicable
 
 ## Themes Plugin
 
@@ -394,7 +418,17 @@ Export-ModuleMember -Function 'Get-MyFeature'
 Set-Alias myfeat Get-MyFeature
 ```
 
-3. Enable your plugin:
+3. Optionally add `plugin.json` so the plugin shows up in discovery views:
+```json
+{
+  "Name": "myplugin",
+  "Description": "Short summary used by Get-PoshixPluginCatalog.",
+  "Commands": ["myfeat", "Get-MyFeature"],
+  "Requires": []
+}
+```
+
+4. Enable your plugin:
 ```powershell
 Import-PoshixPlugin -Name 'myplugin'
 ```
