@@ -199,7 +199,7 @@ This repository includes an up-to-date template:
 
 `./.poshixrc.json`
 
-The default in-memory config keeps `Plugins = @()` until you opt in, while the repository template acts as a more complete starter profile that showcases the built-in plugins and prompt settings.
+The default in-memory config starts with `Plugins = @()`, so poshix does not auto-enable plugins unless you opt in. The `./.poshixrc.json` file in the repository root is a reference starter profile that demonstrates enabling multiple built-in plugins and prompt settings.
 
 You can copy the root template to your user config path and then customize:
 
