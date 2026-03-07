@@ -1,0 +1,6 @@
+{
+  "Name": "session-layouts",
+  "Description": "Save and restore working directories, bookmarks, and shell session layouts.",
+  "Commands": ["layout-save", "layout-restore", "layouts", "layout-rm", "bookmark", "bm"],
+  "Requires": []
+}

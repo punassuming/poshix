@@ -1,0 +1,6 @@
+{
+  "Name": "starship",
+  "Description": "Integrates the Starship prompt with poshix.",
+  "Commands": [],
+  "Requires": ["starship"]
+}

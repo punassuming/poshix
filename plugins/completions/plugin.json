@@ -1,0 +1,6 @@
+{
+  "Name": "completions",
+  "Description": "Extensive CLI command completion framework for common utilities and poshix commands.",
+  "Commands": ["git", "docker", "npm", "yarn", "kubectl", "cargo", "pip", "dotnet", "poshix"],
+  "Requires": []
+}

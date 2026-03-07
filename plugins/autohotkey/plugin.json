@@ -1,0 +1,6 @@
+{
+  "Name": "autohotkey",
+  "Description": "Helpers for launching and editing AutoHotkey scripts.",
+  "Commands": ["ahk", "ahk-edit"],
+  "Requires": ["AutoHotkey"]
+}

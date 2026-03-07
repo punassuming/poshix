@@ -1,0 +1,6 @@
+{
+  "Name": "git-worktree",
+  "Description": "Git worktree management helpers for create, switch, and prune workflows.",
+  "Commands": ["gwt", "gwt-add", "gwt-switch", "gwt-rm"],
+  "Requires": ["git"]
+}

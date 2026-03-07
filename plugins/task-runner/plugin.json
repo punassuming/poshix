@@ -1,0 +1,6 @@
+{
+  "Name": "task-runner",
+  "Description": "Per-project task discovery and execution across common task file formats.",
+  "Commands": ["tasks", "task", "task-init"],
+  "Requires": []
+}

@@ -1,0 +1,6 @@
+{
+  "Name": "fzf-tools",
+  "Description": "Fuzzy-finding wrappers for history, files, branches, and processes.",
+  "Commands": ["fh", "ff", "fb", "fp"],
+  "Requires": ["fzf"]
+}
