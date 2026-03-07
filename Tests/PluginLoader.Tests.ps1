@@ -59,6 +59,8 @@ Describe "Plugin Loader" {
             $catalog.Name | Should -Contain 'docker'
             $catalog.Name | Should -Contain 'themes'
             $catalog.Name | Should -Contain 'windows-terminal'
+            $catalog.Name | Should -Contain 'wsl'
+            $catalog.Name | Should -Contain 'wmi'
             $catalog.Name | Should -Contain 'git-worktree'
             $catalog.Name | Should -Contain 'fzf-tools'
             $catalog.Name | Should -Contain 'k8s-context'

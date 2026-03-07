@@ -1,0 +1,6 @@
+{
+  "Name": "wsl",
+  "Description": "WSL discovery and execution helpers with a PowerShell-friendly wsl command.",
+  "Commands": ["wsl", "wslls", "wslx", "wslinfo"],
+  "Requires": ["wsl.exe"]
+}

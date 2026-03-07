@@ -255,6 +255,8 @@
     "docker",
     "themes",
     "windows-terminal",
+    "wsl",
+    "wmi",
     "git-worktree",
     "fzf-tools",
     "k8s-context",

@@ -525,6 +525,58 @@ When `Docker.Mode` is `Wsl`, or when no native Docker CLI is available, the plug
 
 See [plugins/docker/README.md](plugins/docker/README.md) for details.
 
+#### wsl
+WSL discovery and execution helpers with a PowerShell-friendly `wsl` command surface.
+
+```powershell
+# Enable in config
+$config = @{
+    Plugins = @('wsl')
+}
+Set-PoshixConfig -Config $config
+Save-PoshixConfig
+
+# Discover installed and online distros
+wsl list
+wsl list online
+wsl status
+
+# Execute inside WSL
+wsl -d Ubuntu -- uname -a
+wslx -Distribution Ubuntu -Command 'pwd'
+```
+
+The plugin special-cases `wsl list`, `wsl ls`, and `wsl status`, and passes all other invocations directly through to `wsl.exe`.
+
+See [plugins/wsl/README.md](plugins/wsl/README.md) for details.
+
+#### wmi
+WMI/CIM discovery and query helpers for Windows inventory, namespaces, services, processes, and disks.
+
+```powershell
+# Enable in config
+$config = @{
+    Plugins = @('wmi')
+}
+Set-PoshixConfig -Config $config
+Save-PoshixConfig
+
+# Explore the WMI surface
+wmi info
+wmi namespaces root
+wmi classes Win32_* root/cimv2
+wmi query Win32_OperatingSystem
+
+# Focused inventory helpers
+wmisvc spooler
+wmiproc pwsh
+wmi disks
+```
+
+The plugin uses the CIM cmdlets under the hood, so you get WMI-style discovery without depending on the deprecated `Get-WmiObject` workflow.
+
+See [plugins/wmi/README.md](plugins/wmi/README.md) for details.
+
 #### Starship
 Modern cross-shell prompt with extensive customization.
 

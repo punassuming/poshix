@@ -1,0 +1,6 @@
+{
+  "Name": "wmi",
+  "Description": "WMI/CIM discovery and query helpers for system inventory, services, processes, and namespaces.",
+  "Commands": ["wmi", "wmiq", "wmiinfo", "wmicls", "wmins", "wmisvc", "wmiproc"],
+  "Requires": ["Get-CimInstance"]
+}
