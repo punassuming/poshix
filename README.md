@@ -36,19 +36,22 @@ Change directory implementation similar to zsh
 
 Colored output with extensive file type detection:
 - **Cyan** for Symlinks
-- **Blue** for Directories
-- **DarkCyan** for Hidden directories
-- **DarkGray** for Hidden files
-- **Green** for Executable files (.exe, .bat, .cmd, .ps1, .sh)
-- **Red** for Archive files (.zip, .tar, .gz, .7z, etc.)
-- **Magenta** for Image files (.jpg, .png, .gif, etc.)
-- **Magenta** for Video files (.mp4, .avi, .mkv, etc.)
-- **DarkMagenta** for Audio files (.mp3, .wav, .flac, etc.)
-- **Yellow** for Document files (.pdf, .doc, .txt, etc.)
-- **Green** for other files with extensions
+- **256-color light gray** for directories
+- **256-color muted gray** for hidden files and hidden directories
+- **256-color green** for executable files without a more specific file type mapping
+- **256-color sky blue** for programming and web files (`.js`, `.ts`, `.py`, `.ps1`, `.html`, `.css`, etc.)
+- **256-color soft orange** for data and database files (`.json`, `.yaml`, `.csv`, `.sql`, `.db`, etc.)
+- **256-color muted purple** for documents and text files (`.pdf`, `.docx`, `.md`, `README`, `LICENSE`, etc.)
+- **256-color soft pink** for image, audio, and video files
+- **256-color muted red** for archives and installers (`.zip`, `.tar`, `.7z`, `.msi`, `.exe`, etc.)
+- **256-color teal** for system, disk, config, and font files
+- **256-color yellow** for presentations, torrents, and backups
+- **White** for other files with extensions
 - **White** for files with no extension
 
-**Customize Colors**: Use `Set-PoshixConfig` to customize colors and file type associations.
+Exact filename overrides are also supported through `FileNames`, so dotfiles like `.gitignore` and extensionless docs like `README` can have dedicated colors without changing global extension rules.
+
+**Customize Colors**: Use `Set-PoshixConfig` to customize colors, exact filename overrides, and file type associations. `ls` accepts either standard PowerShell color names or ANSI escape sequences such as `"\u001b[38;5;117m"`.
 
 ## History Management
 
@@ -216,8 +219,11 @@ Get-PoshixConfig
 ```powershell
 $config = @{
     Colors = @{
-        Directory = 'Cyan'
-        ExecutableFile = 'Yellow'
+        Directory = "$([char]27)[38;5;250m"
+        ProgrammingFile = "$([char]27)[38;5;117m"
+    }
+    FileNames = @{
+        Document = @('README', 'LICENSE')
     }
 }
 Set-PoshixConfig -Config $config

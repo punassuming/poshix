@@ -10,6 +10,7 @@ Describe "Enhanced Features" {
             $config | Should -Not -BeNullOrEmpty
             $config.Colors | Should -Not -BeNullOrEmpty
             $config.FileTypes | Should -Not -BeNullOrEmpty
+            $config.FileNames | Should -Not -BeNullOrEmpty
         }
         
         It "Should update configuration" {
@@ -34,7 +35,18 @@ Describe "Enhanced Features" {
         It "Should reset configuration" {
             Reset-PoshixConfig
             $config = Get-PoshixConfig
-            $config.Colors.Directory | Should -Be 'Blue'
+            $config.Colors.Directory | Should -Match '\x1b\[38;5;250m'
+        }
+
+        It "Should detect ANSI color styles in ls config" {
+            $config = Get-PoshixConfig
+            Test-PoshixAnsiStyle $config.Colors.Directory | Should -Be $true
+        }
+
+        It "Should keep exact filename overrides for ls" {
+            $config = Get-PoshixConfig
+            $config.FileNames.Hidden | Should -Contain 'package-lock.json'
+            $config.FileNames.Document | Should -Contain 'README'
         }
     }
     

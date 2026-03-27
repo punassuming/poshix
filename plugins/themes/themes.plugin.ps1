@@ -125,12 +125,17 @@ function Set-PoshixTheme {
             FileSymlink = 'Green'
             HiddenFile = 'DarkGray'
             ExecutableFile = 'Green'
+            ProgrammingFile = 'Cyan'
+            DataFile = 'Yellow'
             ArchiveFile = 'Red'
             ImageFile = 'Magenta'
             VideoFile = 'Magenta'
             AudioFile = 'DarkMagenta'
+            MediaFile = 'Magenta'
             DocumentFile = 'Yellow'
-            File = 'Green'
+            SystemFile = 'Cyan'
+            MiscFile = 'Yellow'
+            File = 'White'
             FileNoExtension = 'White'
         }
     }

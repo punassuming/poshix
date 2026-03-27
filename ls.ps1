@@ -96,15 +96,43 @@ function Get-FileListing {
   $config = Get-PoshixConfig
   $colors = $config.Colors
   $fileTypes = $config.FileTypes
-  
-  # Build extension to color lookup for O(1) performance
+  $fileNames = if ($config.FileNames) { $config.FileNames } else { @{} }
+
+  # Build lookup tables for O(1) type and exact-name resolution
   $extToColor = @{}
   foreach ($type in $fileTypes.Keys) {
     $colorKey = "${type}File"
-    if ($colors.ContainsKey($colorKey)) {
-      foreach ($ext in $fileTypes[$type]) {
-        $extToColor[$ext] = $colors[$colorKey]
+    if (-not $colors.ContainsKey($colorKey)) {
+      continue
+    }
+
+    foreach ($ext in $fileTypes[$type]) {
+      if ([string]::IsNullOrWhiteSpace($ext)) {
+        continue
       }
+
+      $normalizedExt = $ext.ToString().ToLowerInvariant()
+      if (-not $normalizedExt.StartsWith('.')) {
+        $normalizedExt = ".${normalizedExt}"
+      }
+
+      $extToColor[$normalizedExt] = $colors[$colorKey]
+    }
+  }
+
+  $nameToColor = @{}
+  foreach ($type in $fileNames.Keys) {
+    $colorKey = "${type}File"
+    if (-not $colors.ContainsKey($colorKey)) {
+      continue
+    }
+
+    foreach ($name in $fileNames[$type]) {
+      if ([string]::IsNullOrWhiteSpace($name)) {
+        continue
+      }
+
+      $nameToColor[$name.ToString().ToLowerInvariant()] = $colors[$colorKey]
     }
   }
 
@@ -134,51 +162,17 @@ function Get-FileListing {
         }
       }
       
-      # Determine file type and color
-      $color = 'White'
-      $suffix = '   '
-      
-      if ($NoColor) {
-        $color = 'White'
-      } elseif (($e.Attributes -band [IO.FileAttributes]::ReparsePoint) -and ($e -is [System.IO.DirectoryInfo])) {
-        # dir links
-        $color = $colors.Symlink
-        $suffix = '@  '
-      } elseif ($e.Attributes -band [IO.FileAttributes]::ReparsePoint) {
-        # file links
-        $color = $colors.FileSymlink
-        $suffix = '@  '
-      } elseif (($Name -match "^\..*$") -and ($e -is [System.IO.DirectoryInfo])) {
-        # hidden folders
-        $color = $colors.HiddenDirectory
-        $suffix = '/  '
-      } elseif ($e -is [System.IO.DirectoryInfo]) {
-        # folders
-        $color = $colors.Directory
-        $suffix = '/  '
-      } elseif ($Name -match "^\..*$") {
-        # hidden files
-        $color = $colors.HiddenFile
-      } else {
-        # Determine file type by extension using lookup table
-        $ext = $e.Extension.ToLower()
-        
-        if ($extToColor.ContainsKey($ext)) {
-          $color = $extToColor[$ext]
-        } elseif ($ext) {
-          $color = $colors.File
-        } else {
-          $color = $colors.FileNoExtension
-        }
-      }
+      $display = Get-PoshixLsDisplayInfo -Item $e -Colors $colors -ExtToColor $extToColor -NameToColor $nameToColor -NoColor:$NoColor
+      $color = $display.Color
+      $suffix = $display.Suffix
       
       # Print with determined color
-      write-host "$Name" -nonewline -foregroundcolor $color
-      write-host $suffix -nonewline -foregroundcolor white
+      Write-PoshixStyledText -Text $Name -Style $color -NoNewline
+      Write-PoshixStyledText -Text $suffix -Style 'White' -NoNewline
       
       # Print symlink target if applicable
       if ($target) {
-        write-host "-> $target" -nonewline -foregroundcolor yellow
+        Write-PoshixStyledText -Text "-> $target" -Style 'Yellow' -NoNewline
       }
       if ($LongListing) {
         write-host ""
@@ -195,5 +189,148 @@ function Get-FileListing {
     if ($CurrentColumn -ne 0) {
       write-host "" # add newline at bottom
     }
+  }
+}
+
+function Test-PoshixAnsiStyle {
+  param(
+    [AllowNull()]
+    [string]$Style
+  )
+
+  if ([string]::IsNullOrEmpty($Style)) {
+    return $false
+  }
+
+  return $Style.Contains([string][char]27)
+}
+
+function Write-PoshixStyledText {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$Text,
+    [AllowNull()]
+    [string]$Style,
+    [switch]$NoNewline
+  )
+
+  if (Test-PoshixAnsiStyle -Style $Style) {
+    $reset = "$([char]27)[0m"
+    Write-Host "${Style}${Text}${reset}" -NoNewline:$NoNewline
+    return
+  }
+
+  if ([string]::IsNullOrWhiteSpace($Style)) {
+    Write-Host $Text -NoNewline:$NoNewline
+    return
+  }
+
+  Write-Host $Text -ForegroundColor $Style -NoNewline:$NoNewline
+}
+
+function Test-PoshixExecutableFile {
+  param(
+    [Parameter(Mandatory = $true)]
+    [System.IO.FileSystemInfo]$Item
+  )
+
+  if ($Item -is [System.IO.DirectoryInfo]) {
+    return $false
+  }
+
+  if ($IsWindows -or $PSVersionTable.PSVersion.Major -lt 6) {
+    return $Item.Extension.ToLowerInvariant() -in @('.bat', '.cmd', '.com')
+  }
+
+  try {
+    return (($Item.UnixFileMode -band [System.IO.UnixFileMode]::UserExecute) -ne 0) -or
+      (($Item.UnixFileMode -band [System.IO.UnixFileMode]::GroupExecute) -ne 0) -or
+      (($Item.UnixFileMode -band [System.IO.UnixFileMode]::OtherExecute) -ne 0)
+  } catch {
+    return $Item.Mode -match 'x'
+  }
+}
+
+function Get-PoshixLsDisplayInfo {
+  param(
+    [Parameter(Mandatory = $true)]
+    [System.IO.FileSystemInfo]$Item,
+    [Parameter(Mandatory = $true)]
+    [hashtable]$Colors,
+    [Parameter(Mandatory = $true)]
+    [hashtable]$ExtToColor,
+    [Parameter(Mandatory = $true)]
+    [hashtable]$NameToColor,
+    [switch]$NoColor
+  )
+
+  $name = $Item.Name
+  $lowerName = $name.ToLowerInvariant()
+  $color = 'White'
+  $suffix = '   '
+
+  if ($NoColor) {
+    return @{
+      Color = 'White'
+      Suffix = $suffix
+    }
+  }
+
+  if (($Item.Attributes -band [IO.FileAttributes]::ReparsePoint) -and ($Item -is [System.IO.DirectoryInfo])) {
+    return @{
+      Color = $Colors.Symlink
+      Suffix = '@  '
+    }
+  }
+
+  if ($Item.Attributes -band [IO.FileAttributes]::ReparsePoint) {
+    return @{
+      Color = $Colors.FileSymlink
+      Suffix = '@  '
+    }
+  }
+
+  if (($name -match "^\..*$") -and ($Item -is [System.IO.DirectoryInfo])) {
+    return @{
+      Color = $Colors.HiddenDirectory
+      Suffix = '/  '
+    }
+  }
+
+  if ($Item -is [System.IO.DirectoryInfo]) {
+    return @{
+      Color = if ($NameToColor.ContainsKey($lowerName)) { $NameToColor[$lowerName] } else { $Colors.Directory }
+      Suffix = '/  '
+    }
+  }
+
+  if ($NameToColor.ContainsKey($lowerName)) {
+    return @{
+      Color = $NameToColor[$lowerName]
+      Suffix = $suffix
+    }
+  }
+
+  if ($name -match "^\..*$") {
+    return @{
+      Color = $Colors.HiddenFile
+      Suffix = $suffix
+    }
+  }
+
+  $ext = $Item.Extension.ToLowerInvariant()
+  if ($ExtToColor.ContainsKey($ext)) {
+    $color = $ExtToColor[$ext]
+  } elseif (Test-PoshixExecutableFile -Item $Item) {
+    $color = $Colors.ExecutableFile
+  } elseif ($ext) {
+    $color = $Colors.File
+  } else {
+    $color = $Colors.FileNoExtension
+  }
+
+  return @{
+    Color = $color
+    Suffix = $suffix
   }
 }
