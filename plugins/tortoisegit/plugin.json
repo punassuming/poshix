@@ -1,6 +1,6 @@
 {
   "Name": "tortoisegit",
-  "Description": "Helper command for opening TortoiseGit dialogs from PowerShell.",
-  "Commands": ["tgit"],
+  "Description": "Helper commands for opening TortoiseGit dialogs from PowerShell without blocking the terminal.",
+  "Commands": ["tgit", "tgitdiff", "Invoke-TortoiseGit", "Invoke-TortoiseGitDiff"],
   "Requires": ["TortoiseGit"]
 }

@@ -712,7 +712,7 @@ ahk-edit .\main.ahk             # open script in default editor
 See [plugins/autohotkey/README.md](plugins/autohotkey/README.md) for details.
 
 #### tortoisegit
-Helper command for opening TortoiseGit dialogs from PowerShell.
+Helper commands for opening TortoiseGit dialogs from PowerShell without blocking the terminal.
 
 ```powershell
 # Enable in config
@@ -720,9 +720,15 @@ $config = @{ Plugins = @('tortoisegit') }
 Set-PoshixConfig -Config $config
 Save-PoshixConfig
 
-tgit                 # open log dialog for current directory
-tgit commit .        # open commit dialog
-tgit push .          # open push dialog
+tgit                          # open log dialog for current directory
+tgit commit .                 # open commit dialog
+tgit push .                   # open push dialog
+
+tgitdiff                                       # working-copy diff for current directory
+tgitdiff .\src\app.ps1                         # working-copy diff for a specific file
+tgitdiff .\src\app.ps1 -StartRevision HEAD     # diff working copy against HEAD
+tgitdiff .\src\app.ps1 -StartRevision HEAD~1 -EndRevision HEAD  # diff between two revisions
+tgitdiff .\old.ps1 -Path2 .\new.ps1            # compare two files directly
 ```
 
 See [plugins/tortoisegit/README.md](plugins/tortoisegit/README.md) for details.

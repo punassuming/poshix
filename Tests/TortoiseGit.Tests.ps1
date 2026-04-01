@@ -16,8 +16,14 @@ Describe 'TortoiseGit Plugin' {
         It 'Should export Invoke-TortoiseGit' {
             Get-Command Invoke-TortoiseGit -ErrorAction SilentlyContinue | Should -Not -BeNullOrEmpty
         }
+        It 'Should export Invoke-TortoiseGitDiff' {
+            Get-Command Invoke-TortoiseGitDiff -ErrorAction SilentlyContinue | Should -Not -BeNullOrEmpty
+        }
         It 'Should export alias tgit' {
             Get-Alias tgit -ErrorAction SilentlyContinue | Should -Not -BeNullOrEmpty
+        }
+        It 'Should export alias tgitdiff' {
+            Get-Alias tgitdiff -ErrorAction SilentlyContinue | Should -Not -BeNullOrEmpty
         }
     }
 
@@ -40,6 +46,47 @@ Describe 'TortoiseGit Plugin' {
                 return
             }
             { Invoke-TortoiseGit -Command log -Path '.' -WarningAction SilentlyContinue } | Should -Not -Throw
+        }
+
+        It 'Invoke-TortoiseGitDiff should not throw' {
+            if (Get-TortoiseGitCommand) {
+                Set-ItResult -Skipped -Because 'TortoiseGit is installed in this environment'
+                return
+            }
+            { Invoke-TortoiseGitDiff -Path '.' -WarningAction SilentlyContinue } | Should -Not -Throw
+        }
+    }
+
+    Context 'Invoke-TortoiseGitDiff parameter validation' {
+        It 'Should warn and return when Path does not exist' {
+            if (Get-TortoiseGitCommand) {
+                Set-ItResult -Skipped -Because 'TortoiseGit is installed in this environment'
+                return
+            }
+            $warnings = @(Invoke-TortoiseGitDiff -Path 'C:\nonexistent\path\file.txt' 3>&1 |
+                Where-Object { $_ -is [System.Management.Automation.WarningRecord] })
+            $warnings | Should -Not -BeNullOrEmpty
+        }
+
+        It 'Should warn and return when Path2 does not exist' {
+            if (Get-TortoiseGitCommand) {
+                Set-ItResult -Skipped -Because 'TortoiseGit is installed in this environment'
+                return
+            }
+            $warnings = @(Invoke-TortoiseGitDiff -Path '.' -Path2 'C:\nonexistent\path\file.txt' -WarningAction Continue 3>&1 |
+                Where-Object { $_ -is [System.Management.Automation.WarningRecord] })
+            $warnings | Should -Not -BeNullOrEmpty
+        }
+    }
+
+    Context 'Invoke-TortoiseGit uses Start-Process (non-blocking)' {
+        It 'Invoke-TortoiseGit body should use Start-Process' {
+            $def = (Get-Command Invoke-TortoiseGit).ScriptBlock.ToString()
+            $def | Should -Match 'Start-Process'
+        }
+        It 'Invoke-TortoiseGitDiff body should use Start-Process' {
+            $def = (Get-Command Invoke-TortoiseGitDiff).ScriptBlock.ToString()
+            $def | Should -Match 'Start-Process'
         }
     }
 }
