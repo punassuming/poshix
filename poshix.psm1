@@ -79,6 +79,8 @@ $MyInvocation.MyCommand.ScriptBlock.Module.OnRemove = {
   } catch {
     # Silently continue if config not available during removal
   }
+  # Merge per-session PSReadLine history back into the shared file
+  try { Merge-PoshixSessionHistory } catch { }
 }
 
 
@@ -102,6 +104,21 @@ try {
 } catch {
     # Silently continue if history loading fails
 }
+
+# Configure per-session PSReadLine history (must run before first prompt)
+try {
+    Initialize-PoshixPSReadLineHistory
+} catch {
+    # Silently continue if PSReadLine history setup fails
+}
+
+# Also merge on PowerShell.Exiting for terminals that are closed without
+# removing the module (e.g. window close, kill signal)
+try {
+    Register-EngineEvent -SourceIdentifier PowerShell.Exiting -SupportEvent -Action {
+        try { Merge-PoshixSessionHistory } catch { }
+    } | Out-Null
+} catch { }
 
 # Load enabled plugins from config
 try {

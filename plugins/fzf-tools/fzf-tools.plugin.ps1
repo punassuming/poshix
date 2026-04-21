@@ -12,6 +12,19 @@
 #   # or (macOS/Linux)
 #   brew install fzf
 
+function Get-FzfPreviewCommand {
+    # bat gives syntax-highlighted output and is the nicest option
+    if (Get-Command bat -CommandType Application -ErrorAction SilentlyContinue) {
+        return 'bat --color=always --style=numbers "{}"'
+    }
+    # On Linux/macOS cat is a native binary; on Windows it is only a PS alias
+    if ($PSVersionTable.PSVersion.Major -ge 6 -and ($IsLinux -or $IsMacOS)) {
+        return 'cat "{}"'
+    }
+    # Windows fallback: cmd.exe built-in TYPE works without any extra tools
+    return 'type "{}"'
+}
+
 function Test-FzfAvailable {
     if (-not (Get-Command fzf -ErrorAction SilentlyContinue)) {
         Write-Warning "[poshix] fzf is not available in PATH. Install it from https://github.com/junegunn/fzf"
@@ -88,9 +101,10 @@ function Find-FzfFile {
         $gciArgs = @{ Path = $Path; Recurse = $true; File = $true; ErrorAction = 'SilentlyContinue' }
         if ($Filter) { $gciArgs['Filter'] = $Filter }
 
+        $preview = Get-FzfPreviewCommand
         $result = Get-ChildItem @gciArgs |
             Select-Object -ExpandProperty FullName |
-            & fzf --height 40% --reverse --border --prompt "Files> " --preview "cat {}"
+            & fzf --height 40% --reverse --border --prompt "Files> " --preview $preview
 
         if ($result) {
             try {
@@ -195,6 +209,7 @@ function Find-FzfProcess {
 }
 
 # Export functions to global scope
+Set-Item -Path "function:global:Get-FzfPreviewCommand" -Value ${function:Get-FzfPreviewCommand}
 Set-Item -Path "function:global:Test-FzfAvailable"  -Value ${function:Test-FzfAvailable}
 Set-Item -Path "function:global:Find-FzfHistory"    -Value ${function:Find-FzfHistory}
 Set-Item -Path "function:global:Find-FzfFile"       -Value ${function:Find-FzfFile}

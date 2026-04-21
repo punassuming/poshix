@@ -75,6 +75,7 @@ function Get-PoshixDefaultConfig {
         History = @{
             MaxSize = 4096
             SavePath = (Join-Path $env:USERPROFILE '.poshix_history')
+            PSReadLinePath = (Join-Path $env:USERPROFILE '.poshix_psrl_history')
         }
         # Startup options
         Startup = @{

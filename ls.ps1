@@ -88,7 +88,9 @@ function Get-FileListing {
 
   $jlist = $null
   if ($LongListing) {
-    Write-Host ("total: {0:n2}K" -f $($($Childs | Where-Object -property length | Measure-Object -property length -sum).sum / 1KB))
+    $totalBytes = ($Childs | Where-Object { $_ -is [System.IO.FileInfo] } | Measure-Object -Property Length -Sum).Sum
+    if ($null -eq $totalBytes) { $totalBytes = 0 }
+    Write-Host ("total: {0:n2}K" -f ([double]$totalBytes / 1KB))
     $jlist = junctions
   }
 

@@ -79,6 +79,8 @@ function Find-InFiles {
         [string]$Pattern,
         [Parameter(Position=1)]
         [string]$Path = ".",
+        [Parameter(ValueFromPipeline=$true)]
+        [object]$InputObject,
         [Parameter()]
         [string]$Include = "*",
         [Parameter()]
@@ -88,28 +90,45 @@ function Find-InFiles {
         [Parameter()]
         [switch]$LineNumber
     )
-    
-    $searchParams = @{
-        Path = $Path
-        Pattern = $Pattern
-        Include = $Include
+
+    begin {
+        $pipelineLines = [System.Collections.Generic.List[string]]::new()
     }
-    
-    if ($Recurse) {
-        $searchParams['Recurse'] = $true
+
+    process {
+        if ($null -ne $InputObject) {
+            $pipelineLines.Add($InputObject.ToString())
+        }
     }
-    
-    if ($CaseSensitive) {
-        $searchParams['CaseSensitive'] = $true
-    }
-    
-    Select-String @searchParams | ForEach-Object {
-        if ($LineNumber) {
-            Write-Host "$($_.Path):$($_.LineNumber):" -NoNewline -ForegroundColor Cyan
-            Write-Host " $($_.Line)"
+
+    end {
+        $selectParams = @{ Pattern = $Pattern }
+        if ($CaseSensitive) { $selectParams['CaseSensitive'] = $true }
+
+        if ($pipelineLines.Count -gt 0) {
+            $pipelineLines | Select-String @selectParams | ForEach-Object {
+                if ($LineNumber) {
+                    Write-Host "$($_.LineNumber):" -NoNewline -ForegroundColor Cyan
+                    Write-Host " $($_.Line)"
+                } else {
+                    Write-Host "$($_.Line)"
+                }
+            }
         } else {
-            Write-Host "$($_.Path): " -NoNewline -ForegroundColor Cyan
-            Write-Host "$($_.Line)"
+            $searchParams = $selectParams.Clone()
+            $searchParams['Path'] = $Path
+            $searchParams['Include'] = $Include
+            if ($Recurse) { $searchParams['Recurse'] = $true }
+
+            Select-String @searchParams | ForEach-Object {
+                if ($LineNumber) {
+                    Write-Host "$($_.Path):$($_.LineNumber):" -NoNewline -ForegroundColor Cyan
+                    Write-Host " $($_.Line)"
+                } else {
+                    Write-Host "$($_.Path): " -NoNewline -ForegroundColor Cyan
+                    Write-Host "$($_.Line)"
+                }
+            }
         }
     }
 }
