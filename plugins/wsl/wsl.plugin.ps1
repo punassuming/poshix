@@ -295,6 +295,13 @@ function Invoke-PoshixWslProxy {
     if ($User) {
         $passthroughArguments += @('-u', $User)
     }
+
+    # When running a Linux command (not a WSL management flag like --list),
+    # use -e/--exec to bypass the distro's login shell.  This prevents failures
+    # when the configured shell (e.g. fish) is missing or broken.
+    if ($Arguments.Count -gt 0 -and $Arguments[0] -notlike '--*') {
+        $passthroughArguments += '-e'
+    }
     $passthroughArguments += $Arguments
 
     Invoke-PoshixWslCliPassthrough -Arguments $passthroughArguments

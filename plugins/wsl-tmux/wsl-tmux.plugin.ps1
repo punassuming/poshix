@@ -57,14 +57,14 @@ function Enter-WslTmux {
     if ($Distribution) { $distroArgs = @('-d', $Distribution) }
 
     # Verify tmux is present in the target WSL environment
-    & $wsl @distroArgs -- bash -c "command -v tmux" *>$null
+    & $wsl @distroArgs -e bash -c "command -v tmux" *>$null
     if ($LASTEXITCODE -ne 0) {
         Write-Warning "[poshix] wsl-tmux: tmux is not installed. In WSL run: sudo apt install tmux"
         return
     }
 
     # Convert the current Windows path to its /mnt/... WSL path
-    $wslPath = (& $wsl @distroArgs -- wslpath -u ($PWD.Path) 2>$null).Trim()
+    $wslPath = (& $wsl @distroArgs -e wslpath -u ($PWD.Path) 2>$null).Trim()
     if (-not $wslPath -or $LASTEXITCODE -ne 0) { $wslPath = '~' }
 
     # Temp file written by the tmux hooks to capture the final pane directory
@@ -100,13 +100,13 @@ fi
     $b64 = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($launcher))
 
     # Block until tmux exits or the user detaches
-    & $wsl @distroArgs -- bash -c "printf '%s' '$b64' | base64 -d | bash"
+    & $wsl @distroArgs -e bash -c "printf '%s' '$b64' | base64 -d | bash"
 
     # Sync the last active pane's directory back to PowerShell (best-effort)
     if (-not $NoSync) {
-        $syncedWslPath = (& $wsl @distroArgs -- bash -c "cat '$syncFile' 2>/dev/null; rm -f '$syncFile' 2>/dev/null").Trim()
+        $syncedWslPath = (& $wsl @distroArgs -e bash -c "cat '$syncFile' 2>/dev/null; rm -f '$syncFile' 2>/dev/null").Trim()
         if ($syncedWslPath) {
-            $winPath = (& $wsl @distroArgs -- wslpath -w "$syncedWslPath" 2>$null).Trim()
+            $winPath = (& $wsl @distroArgs -e wslpath -w "$syncedWslPath" 2>$null).Trim()
             if ($winPath -and (Test-Path $winPath -ErrorAction SilentlyContinue)) {
                 Set-Location $winPath
                 Write-Host "  $winPath" -ForegroundColor DarkGray

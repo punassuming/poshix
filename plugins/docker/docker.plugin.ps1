@@ -86,7 +86,7 @@ function Resolve-PoshixDockerBackend {
                 if ($settings.Distribution) {
                     $baseArguments += @('-d', [string]$settings.Distribution)
                 }
-                $baseArguments += @('--', 'docker')
+                $baseArguments += @('-e', 'docker')
 
                 return [PSCustomObject]@{
                     Mode = 'Wsl'
@@ -98,7 +98,7 @@ function Resolve-PoshixDockerBackend {
         }
         default {
             if ($settings.Distribution -and $wslCommand) {
-                $baseArguments = @('-d', [string]$settings.Distribution, '--', 'docker')
+                $baseArguments = @('-d', [string]$settings.Distribution, '-e', 'docker')
                 return [PSCustomObject]@{
                     Mode = 'Wsl'
                     Command = $wslCommand.Source
@@ -120,7 +120,7 @@ function Resolve-PoshixDockerBackend {
                 return [PSCustomObject]@{
                     Mode = 'Wsl'
                     Command = $wslCommand.Source
-                    BaseArguments = @('--', 'docker')
+                    BaseArguments = @('-e', 'docker')
                     Distribution = $null
                 }
             }
