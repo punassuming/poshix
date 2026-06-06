@@ -28,7 +28,8 @@ try {
     . .\cd.ps1
     . .\history.ps1
     . .\commands.ps1
-    
+    . .\walkthrough.ps1
+
     Pop-Location
     
     if ($Verbose) {
@@ -93,6 +94,13 @@ try {
     Import-PoshixConfig
 } catch {
     Write-Warning "Failed to import configuration: $_"
+}
+
+# First-run hint — silent once config file exists
+if (-not (Test-Path (Join-Path $env:USERPROFILE '.poshixrc.json'))) {
+    Write-Host "[poshix] First time? Run " -NoNewline -ForegroundColor DarkGray
+    Write-Host "poshix-setup"              -NoNewline -ForegroundColor Cyan
+    Write-Host " to configure your shell." -ForegroundColor DarkGray
 }
 
 # Load history if configured
