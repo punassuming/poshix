@@ -3,6 +3,27 @@
 
 # Track loaded plugins
 $script:LoadedPlugins = @{}
+$script:PluginLoadProfile = @()
+
+function Get-PoshixPluginLoadProfile {
+    <# .SYNOPSIS Show load time and outcome for each plugin attempted in this session. #>
+    [CmdletBinding()]
+    param()
+    $rootPath = if ($script:PoshixPath) { $script:PoshixPath.TrimEnd('\', '/') } else { $null }
+    foreach ($entry in ($script:PluginLoadProfile | Sort-Object -Property LoadMilliseconds -Descending)) {
+        $displayPath = $entry.Path
+        if ($displayPath -and $rootPath -and $displayPath.StartsWith($rootPath, [StringComparison]::OrdinalIgnoreCase)) {
+            $displayPath = $displayPath.Substring($rootPath.Length).TrimStart('\', '/') -replace '\\', '/'
+        }
+        [PSCustomObject][ordered]@{
+            Name = $entry.Name
+            Status = $entry.Status
+            LoadMilliseconds = $entry.LoadMilliseconds
+            Path = $displayPath
+            Error = $entry.Error
+        }
+    }
+}
 
 function Get-PoshixPluginMetadata {
     param(
@@ -120,11 +141,15 @@ function Import-PoshixPlugin {
     $builtinPluginPath = Join-Path $script:PoshixPath "plugins"
     
     foreach ($plugin in $Name) {
+        if ($Force -and $script:LoadedPlugins.ContainsKey($plugin)) { Remove-PoshixPlugin -Name $plugin }
         # Skip if already loaded unless Force
         if ($script:LoadedPlugins.ContainsKey($plugin) -and -not $Force) {
             Write-Verbose "[poshix] Plugin '$plugin' already loaded. Use -Force to reload."
             continue
         }
+
+        $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+        $loadError = $null
         
         $pluginPaths = @(
             (Join-Path $customPluginPath "$plugin/$plugin.plugin.ps1"),
@@ -135,6 +160,7 @@ function Import-PoshixPlugin {
         foreach ($pluginFile in $pluginPaths) {
             if (Test-Path $pluginFile) {
                 try {
+                    $functionSnapshot = @(Get-ChildItem Function: | Select-Object -ExpandProperty Name)
                     . $pluginFile
                     
                     # Auto-register completions if they exist
@@ -143,18 +169,39 @@ function Import-PoshixPlugin {
                         Get-ChildItem "$completionsDir/*.ps1" -ErrorAction SilentlyContinue | 
                             ForEach-Object { . $_.FullName }
                     }
+                    # Plugins are dot-sourced from this loader function. Promote
+                    # every function they introduced before this scope exits so
+                    # public commands retain access to their private helpers.
+                    $pluginFunctions = @(Get-ChildItem Function: | Where-Object Name -notin $functionSnapshot | Select-Object -ExpandProperty Name)
+                    foreach ($functionName in $pluginFunctions) {
+                        Set-Item -Path "function:global:$functionName" -Value (Get-Item -Path "function:$functionName").ScriptBlock -Force
+                    }
                     
                     $script:LoadedPlugins[$plugin] = @{
                         Path = $pluginFile
                         LoadedAt = Get-Date
+                        LoadMilliseconds = [math]::Round($stopwatch.Elapsed.TotalMilliseconds, 1)
+                        Functions = $pluginFunctions
                     }
                     $loaded = $true
                     Write-Verbose "[poshix] Loaded plugin: $plugin from $pluginFile"
                     break
                 } catch {
+                    $loadError = $_.Exception.Message
                     Write-Warning "[poshix] Failed to load plugin '$plugin': $_"
                 }
             }
+        }
+
+        $stopwatch.Stop()
+        $loadedEntry = if ($loaded) { $script:LoadedPlugins[$plugin] } else { $null }
+        $script:PluginLoadProfile += [PSCustomObject][ordered]@{
+            Name = $plugin
+            Status = if ($loaded) { 'Loaded' } elseif ($loadError) { 'Failed' } else { 'NotFound' }
+            LoadMilliseconds = [math]::Round($stopwatch.Elapsed.TotalMilliseconds, 1)
+            Path = if ($loadedEntry) { $loadedEntry.Path } else { $null }
+            Error = $loadError
+            LoadedAt = if ($loadedEntry) { $loadedEntry.LoadedAt } else { $null }
         }
         
         if (-not $loaded) {
@@ -180,6 +227,9 @@ function Remove-PoshixPlugin {
     )
     
     if ($script:LoadedPlugins.ContainsKey($Name)) {
+        foreach ($functionName in @($script:LoadedPlugins[$Name].Functions)) {
+            Remove-Item -Path "function:global:$functionName" -Force -ErrorAction SilentlyContinue
+        }
         $script:LoadedPlugins.Remove($Name)
         Write-Verbose "[poshix] Unloaded plugin: $Name"
     } else {
@@ -272,4 +322,8 @@ function Get-PoshixPlugin {
             Write-Host "  (none - directory not found)" -ForegroundColor DarkGray
         }
     }
+}
+
+foreach($loaderFunction in @('Get-PoshixPluginLoadProfile','Get-PoshixPluginMetadata','Get-PoshixPluginCatalog','Import-PoshixPlugin','Remove-PoshixPlugin','Get-PoshixPlugin')){
+    Set-Item -Path "function:global:$loaderFunction" -Value (Get-Item -Path "function:$loaderFunction").ScriptBlock -Force
 }

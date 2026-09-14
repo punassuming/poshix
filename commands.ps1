@@ -59,11 +59,13 @@ function Find-InFiles {
     .SYNOPSIS
     Search for text in files (grep-like functionality)
     .DESCRIPTION
-    Search for patterns in file contents
+    Search for patterns in file contents or text received from the pipeline.
     .PARAMETER Pattern
     Pattern to search for
     .PARAMETER Path
     Path to search in
+    .PARAMETER InputObject
+    Text to search when values are piped to the command.
     .PARAMETER Include
     File pattern to include
     .PARAMETER Recurse
@@ -72,61 +74,61 @@ function Find-InFiles {
     Use case-sensitive matching
     .EXAMPLE
     Find-InFiles -Pattern "function" -Path . -Include "*.ps1" -Recurse
+    .EXAMPLE
+    Get-Content .\application.log | grep 'error|warning'
     #>
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName = 'Path')]
     param(
-        [Parameter(Mandatory=$true, Position=0)]
+        [Parameter(Mandatory, Position = 0)]
         [string]$Pattern,
-        [Parameter(Position=1)]
+        [Parameter(ParameterSetName = 'Path', Position = 1)]
         [string]$Path = ".",
-        [Parameter(ValueFromPipeline=$true)]
+        [Parameter(ParameterSetName = 'Pipeline', Mandatory, ValueFromPipeline)]
+        [AllowNull()]
         [object]$InputObject,
-        [Parameter()]
+        [Parameter(ParameterSetName = 'Path')]
         [string]$Include = "*",
-        [Parameter()]
+        [Parameter(ParameterSetName = 'Path')]
         [switch]$Recurse,
-        [Parameter()]
         [switch]$CaseSensitive,
-        [Parameter()]
         [switch]$LineNumber
     )
 
     begin {
-        $pipelineLines = [System.Collections.Generic.List[string]]::new()
-    }
-
-    process {
-        if ($null -ne $InputObject) {
-            $pipelineLines.Add($InputObject.ToString())
+        if ($PSCmdlet.ParameterSetName -eq 'Pipeline') {
+            $regexOptions = if ($CaseSensitive) {
+                [Text.RegularExpressions.RegexOptions]::None
+            } else {
+                [Text.RegularExpressions.RegexOptions]::IgnoreCase
+            }
+            $matcher = [regex]::new($Pattern, $regexOptions)
+            $inputLineNumber = 0
         }
     }
 
-    end {
-        $selectParams = @{ Pattern = $Pattern }
-        if ($CaseSensitive) { $selectParams['CaseSensitive'] = $true }
-
-        if ($pipelineLines.Count -gt 0) {
-            $pipelineLines | Select-String @selectParams | ForEach-Object {
-                if ($LineNumber) {
-                    Write-Host "$($_.LineNumber):" -NoNewline -ForegroundColor Cyan
-                    Write-Host " $($_.Line)"
-                } else {
-                    Write-Host "$($_.Line)"
+    process {
+        if ($PSCmdlet.ParameterSetName -eq 'Pipeline' -and $null -ne $InputObject) {
+            foreach ($line in ([string]$InputObject -split '\r?\n')) {
+                $inputLineNumber++
+                if ($matcher.IsMatch($line)) {
+                    if ($LineNumber) { "$inputLineNumber`: $line" } else { $line }
                 }
             }
-        } else {
-            $searchParams = $selectParams.Clone()
-            $searchParams['Path'] = $Path
-            $searchParams['Include'] = $Include
-            if ($Recurse) { $searchParams['Recurse'] = $true }
+        }
+    }
+
+
+    end {
+        if ($PSCmdlet.ParameterSetName -eq 'Path') {
+            $searchParams = @{ Path = $Path; Pattern = $Pattern; Include = $Include }
+            if ($Recurse) { $searchParams.Recurse = $true }
+            if ($CaseSensitive) { $searchParams.CaseSensitive = $true }
 
             Select-String @searchParams | ForEach-Object {
                 if ($LineNumber) {
-                    Write-Host "$($_.Path):$($_.LineNumber):" -NoNewline -ForegroundColor Cyan
-                    Write-Host " $($_.Line)"
+                    "$($_.Path):$($_.LineNumber): $($_.Line)"
                 } else {
-                    Write-Host "$($_.Path): " -NoNewline -ForegroundColor Cyan
-                    Write-Host "$($_.Line)"
+                    "$($_.Path): $($_.Line)"
                 }
             }
         }

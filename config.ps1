@@ -82,6 +82,10 @@ function Get-PoshixDefaultConfig {
             Verbose = $false
             LoadHistory = $true
         }
+        Keybindings = @{
+            Enabled = $true
+        }
+        PackageManagers = @('winget', 'scoop')
         Prompt = @{
             Segments = @(
                 @{ Type = 'user'; Enabled = $false; Color = 'Green' }
@@ -96,7 +100,7 @@ function Get-PoshixDefaultConfig {
             Newline = $false
         }
         # Plugin settings
-        Plugins = @()  # List of enabled plugin names, e.g. @('starship')
+        Plugins = @()  # Optional plugins; runtime-manager is loaded as the safe baseline.
         Theme = $null  # Active theme name (null = no theme / use plugin prompt)
     }
 }

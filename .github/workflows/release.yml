@@ -1,0 +1,38 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      publish_gallery:
+        description: Publish to PowerShell Gallery (requires PSGALLERY_API_KEY)
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build archive and checksum
+        shell: pwsh
+        run: .\scripts\build-release.ps1
+      - name: Publish GitHub release assets
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/v')
+        with:
+          files: |
+            dist/*.zip
+            dist/*.sha256
+      - name: Publish PowerShell Gallery module
+        if: github.event_name == 'workflow_dispatch' && inputs.publish_gallery
+        shell: pwsh
+        env:
+          PSGALLERY_API_KEY: ${{ secrets.PSGALLERY_API_KEY }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:PSGALLERY_API_KEY)) { throw 'PSGALLERY_API_KEY must be configured before publishing.' }
+          Publish-Module -Path . -NuGetApiKey $env:PSGALLERY_API_KEY

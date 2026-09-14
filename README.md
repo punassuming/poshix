@@ -162,6 +162,8 @@ Search for text in files (grep-like functionality)
 ```powershell
 grep "function" . -Include "*.ps1" -Recurse
 grep "error" . -Recurse -LineNumber
+Get-Content .\application.log | grep "error|warning"
+docker logs my-container | grep "timeout"
 ```
 
 ### touch
@@ -205,7 +207,7 @@ This repository includes an up-to-date template:
 
 `./.poshixrc.json`
 
-The default in-memory config starts with `Plugins = @()`, so poshix does not auto-enable plugins unless you opt in. The `./.poshixrc.json` file in the repository root is a reference starter profile that demonstrates enabling multiple built-in plugins and prompt settings.
+Poshix always loads the safe `runtime-manager` and `command-center` baseline, providing `poshix doctor`, `poshix env`, `poshix help`, aliases, and keyboard shortcut discovery without automatically installing anything. The `Plugins` setting controls the remaining optional plugins. The `./.poshixrc.json` file in the repository root is a reference starter profile that demonstrates those additional plugins and prompt settings.
 
 Docker backend selection is configured under `Docker`:
 
@@ -463,6 +465,81 @@ Import-PoshixPlugin -Name 'myplugin'
 
 ### Built-in Plugins
 
+#### runtime-manager
+
+The runtime manager gives Poshix a safe, agent-friendly toolchain contract. Its diagnostics are read-only; provisioning only occurs when you explicitly ask for it.
+
+```powershell
+poshix doctor
+poshix doctor --json
+poshix doctor --plugins
+poshix env list
+poshix env install Git
+poshix update --check
+```
+
+`doctor` reports PowerShell, PSReadLine, Git, GitHub CLI availability, Node.js, Python, .NET, Java, Docker, WSL, kubectl, OpenSSH, and discovered agent CLIs. It does not probe GitHub authentication. Docker and WSL report backend failures separately from a missing executable, which lets an agent produce accurate remediation rather than assuming Docker is usable because `docker.exe` exists. `poshix update --check` is the only command that contacts GitHub; normal shell startup and `doctor` remain local. Configure `PackageManagers` (default: `winget`, then `scoop`) to control explicit installs.
+
+Every attempted plugin load is profiled. `poshix doctor` includes the timing data in its `Plugins` property and summary; use `poshix doctor --plugins` for a sorted, focused table. This makes slow plugin initializers visible in the shell session that loaded them.
+
+See [plugins/runtime-manager/README.md](plugins/runtime-manager/README.md) for details.
+
+#### command-center
+
+Use `poshix-help` for a live terminal command palette. Commands, aliases, shortcuts, shortcut modes, and availability are combined into unified rows so related entries are not listed separately. With `fzf` installed it opens a searchable modal and inserts the selected command into the current prompt; use `-List` for the table view.
+
+```powershell
+poshix-help             # searchable palette
+poshix-help -List
+poshix-help -Section Shortcuts
+poshix-help -Filter docker
+Get-PoshixCommandCenter -AsObject
+```
+
+With PSReadLine, Poshix registers `Alt+h` for Herdr layout selection, `Alt+y` to open Yazi with cwd handoff, `Alt+f` for focused Yazi (only the current folder and no preview), `Alt+g` to open LazyGit at the repository root, `Alt+n` to toggle into Neovim at the current directory, `Alt+a` to choose an installed coding agent with fzf, and `Alt+v` to save the clipboard image or text into the current folder as `YYYYMMDD_HHmmss.png` or `.txt`. Use `poshix-help` for the command palette. `Alt+r` remains an insert-only runtime-report launcher. The Shortcuts table reports whether each binding is actually registered. Set `Keybindings.Enabled` to `false` to opt out, or call `Disable-PoshixKeybindings` in a session.
+
+See [plugins/command-center/README.md](plugins/command-center/README.md) for details.
+
+#### agent-tools
+
+Project-aware launchers for Yazi, LazyGit, Herdr, Claude Code, Codex, and GitHub Copilot CLI.
+
+```powershell
+# Enable in config
+$config = @{ Plugins = @('agent-tools') }
+Set-PoshixConfig -Config $config
+Save-PoshixConfig
+
+# Tool inventory and project-native launchers
+Get-PoshixAgentTool
+y
+lg
+agent Codex
+
+# Define an agent workspace; start it from a Herdr-managed pane
+Save-PoshixAgentWorkspace review -Agent @(
+  @{ Name = 'reviewer'; Tool = 'Codex'; Direction = 'right' }
+)
+Start-PoshixAgentWorkspace review
+
+# Generic pane layout (no commands are hardcoded)
+hlayout
+
+# Use native Poshix templates for any tools/agents
+Save-PoshixHerdrTemplate build -Description 'Build workspace' -Panes @(
+  @{ Command = 'pwsh'; Arguments = @('-NoExit') },
+  @{ Command = 'nvim'; Direction = 'down' }
+)
+Get-PoshixHerdrWorkspaceTemplate
+hwork                         # fzf-select a configured template
+hwork -Layout my-team-layout  # apply one by id
+Invoke-PoshixHerdrWorkspaceTemplate -Validate
+```
+
+`y` uses Yazi's cwd handoff to update the current PowerShell directory. `lg` starts LazyGit at the repository root. Native Poshix Herdr templates are stored in `~/.poshix/herdr-templates.json`; panes may run any command or agent. Template application requires `HERDR_ENV=1`; this prevents Poshix from manipulating another Herdr session from outside its managed pane. No launcher adds approval-bypass flags or handles credentials.
+
+See [plugins/agent-tools/README.md](plugins/agent-tools/README.md) for details.
+
 #### Completions
 Extensive CLI command completion framework for common utilities, inspired by best practices from zsh, fish, and PowerShell ecosystems.
 
@@ -519,7 +596,7 @@ Get-DockerBackendInfo
 dps
 ```
 
-When `Docker.Mode` is `Wsl`, or when no native Docker CLI is available, the plugin also exposes a `docker` command proxy for the current session so existing `docker compose ...` workflows keep working.
+The plugin verifies `docker version` before selecting a backend. It exposes a `docker` command proxy only when that backend is healthy; otherwise `dinfo` reports whether the CLI is missing, WSL is inaccessible, or the Docker daemon is unavailable. Set `Docker.Distribution` explicitly for agent and WSL workflows.
 
 `Get-DockerPromptInfo` returns a compact Compose-aware status string for use by the native prompt engine.
 
@@ -544,11 +621,16 @@ wsl status
 # Execute inside WSL
 wsl -d Ubuntu -- uname -a
 wslx -Distribution Ubuntu -Command 'pwd'
+wslx -Distribution Ubuntu -WorkingDirectory C:\src\app -Capture -Command 'pwd'
 ```
 
 The plugin special-cases `wsl list`, `wsl ls`, and `wsl status`, and passes all other invocations directly through to `wsl.exe`.
 
 See [plugins/wsl/README.md](plugins/wsl/README.md) for details.
+
+#### Runtime diagnostics
+
+`Resolve-PoshixCommand docker,kubectl` returns command paths plus discovery evidence. `Get-PoshixRuntimeReport -AsJson` provides an agent-safe, read-only report of command, WSL, and Docker availability. Neither command changes PATH, starts services, or modifies WSL.
 
 #### wmi
 WMI/CIM discovery and query helpers for Windows inventory, namespaces, services, processes, and disks.
@@ -603,11 +685,20 @@ Import-PoshixPlugin -Name 'windows-terminal'
 
 # Apply tmux-like pane split/navigation keybindings
 Set-WindowsTerminalTmuxKeybindings
+
+# Save and preview a multi-pane workspace
+Save-PoshixTerminalWorkspace dev -Pane @(
+  @{ Type = 'PowerShell'; Directory = 'C:\src\app'; Placement = 'Tab' }
+  @{ Type = 'Wsl'; Distribution = 'Ubuntu'; Directory = 'C:\src\app'; Placement = 'Horizontal' }
+)
+Start-PoshixTerminalWorkspace dev -WhatIf
 ```
 
 Keybindings:
 - Split pane: `Alt+Shift+↑/↓/←/→`
 - Move pane focus: `Alt+↑/↓/←/→`
+
+Workspaces are stored in `~/.poshix/terminal-workspaces/`; they launch only when `Start-PoshixTerminalWorkspace` is invoked.
 
 See [plugins/windows-terminal/README.md](plugins/windows-terminal/README.md) for details.
 
@@ -762,10 +853,33 @@ When a plugin is loaded, poshix automatically:
 ## Module Usage
 From the root directory, run:
 ```powershell
-import-module poshix
+Import-Module .\poshix.psm1
 ```
 
 Or for verbose output:
 ```powershell
-import-module poshix -Verbose
+Import-Module .\poshix.psm1 -Verbose
 ```
+
+## Installation and releases
+
+Release artifacts are built locally with a ZIP archive and SHA256 checksum:
+
+```powershell
+.\scripts\build-release.ps1
+```
+
+Install from the PowerShell Gallery once Poshix has been published there:
+
+```powershell
+Install-Module Poshix -Scope CurrentUser
+Import-Module Poshix
+```
+
+For an offline ZIP release, verify its published SHA256 and use the included bootstrapper:
+
+```powershell
+.\install.ps1 -Source Zip -ZipPath .\Poshix-0.1.0.zip -ExpectedSha256 '<published SHA256>' -AddToProfile
+```
+
+The repository includes release-ready templates for WinGet (`punassuming.Poshix`) and Scoop (`poshix`). GitHub release automation builds and hashes artifacts on version tags; PowerShell Gallery publishing remains a manually dispatched, secret-gated action.

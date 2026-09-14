@@ -1,0 +1,11 @@
+PackageIdentifier: punassuming.Poshix
+PackageVersion: __VERSION__
+PackageLocale: en-US
+Publisher: Poshix contributors
+PackageName: Poshix
+PackageUrl: https://github.com/punassuming/poshix
+License: MIT
+LicenseUrl: https://github.com/punassuming/poshix/blob/main/LICENSE
+ShortDescription: A practical PowerShell shell framework for Windows and WSL.
+ManifestType: defaultLocale
+ManifestVersion: 1.6.0

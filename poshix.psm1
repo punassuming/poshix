@@ -120,6 +120,15 @@ try {
     } | Out-Null
 } catch { }
 
+# Runtime diagnostics, Command Center, and terminal-tool launchers are safe
+# baseline command surfaces. They never install tools; the remaining plugins
+# continue to be governed by the user's Plugins setting below.
+try {
+    Import-PoshixPlugin -Name 'runtime-manager', 'command-center', 'agent-tools'
+} catch {
+    Write-Warning "Failed to load Poshix baseline commands: $_"
+}
+
 # Load enabled plugins from config
 try {
     $config = Get-PoshixConfig

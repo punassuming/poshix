@@ -227,8 +227,90 @@ function Set-WindowsTerminalTmuxKeybindings {
     }
 }
 
+function Get-PoshixTerminalWorkspaceDirectory {
+    Join-Path $HOME '.poshix' 'terminal-workspaces'
+}
+
+function Get-PoshixTerminalWorkspacePath {
+    param([Parameter(Mandatory)][string]$Name)
+    Join-Path (Get-PoshixTerminalWorkspaceDirectory) "$Name.json"
+}
+
+function Save-PoshixTerminalWorkspace {
+    <# .SYNOPSIS Save a named Windows Terminal pane layout. #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory, Position = 0)][string]$Name,
+        [Parameter(Mandatory)][hashtable[]]$Pane,
+        [string]$Description = ''
+    )
+    if ($Name -match '[\\/:*?"<>|]') { throw "Workspace name contains invalid filename characters: $Name" }
+    if ($Pane.Count -eq 0) { throw 'A workspace must contain at least one pane.' }
+    foreach ($item in $Pane) {
+        if ($item.Type -notin @('PowerShell', 'Wsl')) { throw "Pane Type must be PowerShell or Wsl." }
+        if (-not $item.Directory) { throw 'Every pane requires Directory.' }
+        if ($item.Placement -and $item.Placement -notin @('Tab', 'Horizontal', 'Vertical')) { throw 'Placement must be Tab, Horizontal, or Vertical.' }
+        if ($item.Type -eq 'Wsl' -and -not $item.Distribution) { throw 'A Wsl pane requires Distribution.' }
+    }
+    $directory = Get-PoshixTerminalWorkspaceDirectory
+    if (-not (Test-Path -LiteralPath $directory)) { New-Item -ItemType Directory -Path $directory -Force | Out-Null }
+    [ordered]@{ Name = $Name; Description = $Description; Panes = $Pane; UpdatedAt = (Get-Date).ToUniversalTime().ToString('o') } |
+        ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Get-PoshixTerminalWorkspacePath $Name) -Encoding UTF8
+}
+
+function Get-PoshixTerminalWorkspace {
+    [CmdletBinding()]
+    param([string]$Name)
+    $directory = Get-PoshixTerminalWorkspaceDirectory
+    if ($Name) {
+        $path = Get-PoshixTerminalWorkspacePath $Name
+        if (-not (Test-Path -LiteralPath $path)) { Write-Warning "[poshix] Terminal workspace '$Name' was not found."; return }
+        return Get-Content -LiteralPath $path -Raw | ConvertFrom-Json
+    }
+    if (-not (Test-Path -LiteralPath $directory)) { return @() }
+    return Get-ChildItem -LiteralPath $directory -Filter '*.json' | ForEach-Object { Get-Content -LiteralPath $_.FullName -Raw | ConvertFrom-Json }
+}
+
+function Start-PoshixTerminalWorkspace {
+    <# .SYNOPSIS Launch a saved Windows Terminal workspace. #>
+    [CmdletBinding(SupportsShouldProcess)]
+    param([Parameter(Mandatory, Position = 0)][string]$Name)
+    $workspace = Get-PoshixTerminalWorkspace -Name $Name
+    if (-not $workspace) { return }
+    $wt = Get-Command wt,wt.exe -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+    if (-not $wt) { Write-Warning '[poshix] Windows Terminal (wt.exe) is not available in PATH.'; return }
+    $arguments = @()
+    $validatedDistributions = @{}
+    foreach ($pane in @($workspace.Panes)) {
+        if (-not (Test-Path -LiteralPath $pane.Directory)) { Write-Warning "[poshix] Workspace directory does not exist: $($pane.Directory)"; return }
+        if ($pane.Type -eq 'Wsl') {
+            $wsl = Get-Command wsl,wsl.exe -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+            if (-not $wsl) { Write-Warning '[poshix] WSL is required for this workspace pane.'; return }
+            if (-not $validatedDistributions.ContainsKey($pane.Distribution)) {
+                $distributions = @(& $wsl.Source --list --quiet 2>$null | ForEach-Object { ($_.ToString() -replace "`0", '').Trim() } | Where-Object { $_ })
+                if ($LASTEXITCODE -ne 0 -or $distributions -notcontains $pane.Distribution) { Write-Warning "[poshix] WSL distribution '$($pane.Distribution)' is unavailable."; return }
+                $validatedDistributions[$pane.Distribution] = $true
+            }
+        }
+        $command = if ($pane.Type -eq 'Wsl') { @('wsl.exe', '-d', $pane.Distribution) } else { @('pwsh.exe') }
+        if ($pane.Command) { $command += @($pane.Command) }
+        $placement = if ($pane.Placement) { [string]$pane.Placement } else { 'Tab' }
+        if ($arguments.Count -eq 0 -or $placement -eq 'Tab') {
+            if ($arguments.Count -gt 0) { $arguments += ';' }
+            $arguments += @('new-tab', '-d', $pane.Directory) + $command
+        } else {
+            $split = if ($placement -eq 'Horizontal') { '-H' } else { '-V' }
+            $arguments += @(';', 'split-pane', $split, '-d', $pane.Directory) + $command
+        }
+    }
+    if ($PSCmdlet.ShouldProcess($Name, "Launch Windows Terminal workspace: $($arguments -join ' ')")) { & $wt.Source @arguments }
+}
+
 # Export to global scope to work around PowerShell module export timing limitations
 Set-Item -Path "function:global:Set-WindowsTerminalTheme" -Value ${function:Set-WindowsTerminalTheme}
 Set-Item -Path "function:global:Set-WindowsTerminalTmuxKeybindings" -Value ${function:Set-WindowsTerminalTmuxKeybindings}
+Set-Item -Path "function:global:Save-PoshixTerminalWorkspace" -Value ${function:Save-PoshixTerminalWorkspace}
+Set-Item -Path "function:global:Get-PoshixTerminalWorkspace" -Value ${function:Get-PoshixTerminalWorkspace}
+Set-Item -Path "function:global:Start-PoshixTerminalWorkspace" -Value ${function:Start-PoshixTerminalWorkspace}
 
 Write-Verbose "[poshix] Windows Terminal plugin loaded"

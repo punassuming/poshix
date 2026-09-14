@@ -1,0 +1,6 @@
+{
+  "Name": "command-center",
+  "Description": "Interactive catalog of Poshix commands, aliases, and keyboard shortcuts.",
+  "Commands": ["Get-PoshixCommandCenter", "Save-PoshixClipboard", "Enable-PoshixKeybindings", "Disable-PoshixKeybindings", "poshix-help"],
+  "Requires": ["PSReadLine (optional, for keyboard shortcuts)"]
+}

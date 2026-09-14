@@ -18,6 +18,7 @@ Describe "Completions Plugin" {
             Test-Path $completionsDir | Should -Be $true
             Test-Path "$completionsDir/git.ps1" | Should -Be $true
             Test-Path "$completionsDir/docker.ps1" | Should -Be $true
+            Test-Path "$completionsDir/herdr.ps1" | Should -Be $true
         }
 
         It "Should export Register-PoshixCompletion helper function" {

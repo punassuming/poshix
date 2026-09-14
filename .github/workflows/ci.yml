@@ -1,0 +1,26 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate manifests and PowerShell syntax
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Get-Content .poshixrc.json -Raw | ConvertFrom-Json | Out-Null
+          Import-PowerShellDataFile .\Poshix.psd1 | Out-Null
+          Get-ChildItem -Recurse -Filter *.ps1 | ForEach-Object {
+            $tokens = $null; $errors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$tokens, [ref]$errors) | Out-Null
+            if ($errors) { throw "Parse errors in $($_.FullName): $($errors -join '; ')" }
+          }
+      - name: Build local release artifact
+        shell: pwsh
+        run: .\scripts\build-release.ps1

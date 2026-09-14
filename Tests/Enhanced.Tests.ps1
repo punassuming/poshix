@@ -90,9 +90,24 @@ Describe "Enhanced Features" {
     }
     
     Context "Linux-like Commands" {
+        It "Should grep text received from the pipeline" {
+            $results = @('alpha', 'Error: failed', 'omega') | grep 'error'
+            $results | Should -Be @('Error: failed')
+        }
+
+        It "Should preserve grep output for downstream pipeline processing" {
+            $count = @('error one', 'ok', 'error two') | grep 'error' | Measure-Object | Select-Object -ExpandProperty Count
+            $count | Should -Be 2
+        }
+
         It "Should find files" {
             $results = Find-Files -Path $ROOT -Name "*.ps1"
             $results | Should -Not -BeNullOrEmpty
+        }
+
+        It "Should track line numbers across piped text" {
+            $results = @('skip', "match one`nmatch two") | grep '^match' -LineNumber
+            $results | Should -Be @('2: match one', '3: match two')
         }
         
         It "Should find directories" {

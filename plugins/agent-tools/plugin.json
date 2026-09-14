@@ -1,0 +1,6 @@
+{
+  "Name": "agent-tools",
+  "Description": "Safe discovery and project-aware launchers for terminal tools and coding agents.",
+  "Commands": ["Get-PoshixAgentTool", "Start-PoshixAgent", "Start-PoshixYazi", "Start-PoshixGitUi", "Get-PoshixHerdrIntegration", "Save-PoshixHerdrTemplate", "Save-PoshixHerdrCurrentTemplate", "Get-PoshixHerdrWorkspaceTemplate", "Invoke-PoshixHerdrWorkspaceTemplate", "Start-PoshixHerdrPaneLayout", "Save-PoshixAgentWorkspace", "Start-PoshixAgentWorkspace"],
+  "Requires": []
+}

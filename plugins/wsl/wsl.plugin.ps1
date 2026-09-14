@@ -48,6 +48,22 @@ function Invoke-PoshixWslCliCapture {
     }
 }
 
+function ConvertTo-PoshixWslPath {
+    [CmdletBinding()]
+    param([Parameter(Mandatory)][string]$Path)
+
+    if ($Path -match '^/') { return $Path }
+    if ($Path -match '^[A-Za-z]:[\\/]?(?<rest>.*)$') {
+        $drive = $Path.Substring(0, 1).ToLowerInvariant()
+        $rest = $Matches.rest -replace '\\', '/'
+        return "/mnt/$drive/$rest".TrimEnd('/')
+    }
+    if ($Path -match '^\\\\') {
+        throw "UNC paths are not supported as a WSL working directory: $Path"
+    }
+    throw "Working directory must be an absolute Windows or Linux path: $Path"
+}
+
 function Invoke-PoshixWslCliPassthrough {
     param(
         [string[]]$Arguments = @()
@@ -202,12 +218,13 @@ function Get-WslStatus {
     $statusResult = Invoke-PoshixWslCliCapture -Arguments @('--status')
     if (-not $statusResult.Available) {
         Write-Warning "[poshix] wsl.exe is not available in PATH"
-        return
+        return [PSCustomObject]@{ Available = $false; Status = 'NotFound'; Reason = 'wsl.exe is not available in PATH'; DefaultDistribution = $null; DefaultVersion = $null; Notes = @(); Distributions = @() }
     }
 
     if ($statusResult.ExitCode -ne 0) {
         Write-Warning "[poshix] wsl --status failed: $($statusResult.Output -join ' ')"
-        return
+        $reason = $statusResult.Output -join ' '
+        return [PSCustomObject]@{ Available = $false; Status = if ($reason -match 'ACCESS_DENIED|Access is denied') { 'AccessDenied' } else { 'Unavailable' }; Reason = $reason; DefaultDistribution = $null; DefaultVersion = $null; Notes = @(); Distributions = @() }
     }
 
     $statusLines = @($statusResult.Output | Where-Object { $_ -ne $null -and $_ -ne '' })
@@ -215,6 +232,9 @@ function Get-WslStatus {
     $distributions = @(Get-WslDistribution)
 
     return [PSCustomObject]@{
+        Available = $true
+        Status = 'Available'
+        Reason = $null
         DefaultDistribution = $status.DefaultDistribution
         DefaultVersion = $status.DefaultVersion
         Notes = $status.Notes
@@ -231,6 +251,8 @@ function Invoke-WslCommand {
     param(
         [string]$Distribution,
         [string]$User,
+        [string]$WorkingDirectory,
+        [switch]$Capture,
         [string[]]$Command
     )
 
@@ -240,6 +262,9 @@ function Invoke-WslCommand {
     }
     if ($User) {
         $arguments += @('-u', $User)
+    }
+    if ($WorkingDirectory) {
+        $arguments += @('--cd', (ConvertTo-PoshixWslPath -Path $WorkingDirectory))
     }
 
     if ($Command.Count -gt 0) {
@@ -252,6 +277,7 @@ function Invoke-WslCommand {
         }
     }
 
+    if ($Capture) { return Invoke-PoshixWslCliCapture -Arguments $arguments }
     Invoke-PoshixWslCliPassthrough -Arguments $arguments
 }
 
@@ -304,6 +330,7 @@ Set-Item -Path "function:global:Get-PoshixWslCliCommand" -Value ${function:Get-P
 Set-Item -Path "function:global:ConvertFrom-PoshixWslText" -Value ${function:ConvertFrom-PoshixWslText}
 Set-Item -Path "function:global:Invoke-PoshixWslCliCapture" -Value ${function:Invoke-PoshixWslCliCapture}
 Set-Item -Path "function:global:Invoke-PoshixWslCliPassthrough" -Value ${function:Invoke-PoshixWslCliPassthrough}
+Set-Item -Path "function:global:ConvertTo-PoshixWslPath" -Value ${function:ConvertTo-PoshixWslPath}
 Set-Item -Path "function:global:ConvertFrom-PoshixWslDistributionText" -Value ${function:ConvertFrom-PoshixWslDistributionText}
 Set-Item -Path "function:global:ConvertFrom-PoshixWslOnlineDistributionText" -Value ${function:ConvertFrom-PoshixWslOnlineDistributionText}
 Set-Item -Path "function:global:ConvertFrom-PoshixWslStatusText" -Value ${function:ConvertFrom-PoshixWslStatusText}

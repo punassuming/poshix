@@ -1,0 +1,11 @@
+{
+  "version": "__VERSION__",
+  "description": "A practical PowerShell shell framework for Windows and WSL.",
+  "homepage": "https://github.com/punassuming/poshix",
+  "license": "MIT",
+  "url": "https://github.com/punassuming/poshix/releases/download/v__VERSION__/Poshix-__VERSION__.zip",
+  "hash": "__SHA256__",
+  "extract_dir": "Poshix-__VERSION__",
+  "pre_install": ["New-Item -ItemType Directory -Force \"$env:USERPROFILE\\Documents\\PowerShell\\Modules\\Poshix\" | Out-Null", "Copy-Item \"$dir\\*\" \"$env:USERPROFILE\\Documents\\PowerShell\\Modules\\Poshix\" -Recurse -Force"],
+  "notes": "Import with: Import-Module Poshix"
+}

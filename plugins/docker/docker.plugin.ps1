@@ -2,6 +2,7 @@
 # WSL-aware Docker helpers and prompt integration
 
 $script:PoshixDockerPromptCache = @{}
+$script:PoshixDockerBackendProbe = @{ PowerShell = $null; AsyncResult = $null; Result = $null }
 
 function Get-PoshixDockerSettings {
     $settings = @{
@@ -43,12 +44,11 @@ function Get-PoshixDockerSettings {
 }
 
 function Get-PoshixDockerNativeCommand {
-    $nativeDocker = Get-Command docker -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
-    if (-not $nativeDocker) {
-        $nativeDocker = Get-Command docker.exe -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+    if (Get-Command Resolve-PoshixCommand -ErrorAction SilentlyContinue) {
+        $resolved = Resolve-PoshixCommand -Name 'docker' | Select-Object -First 1
+        if ($resolved.Command) { return [PSCustomObject]@{ Source = $resolved.Command } }
     }
-
-    return $nativeDocker
+    return Get-Command docker,docker.exe -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
 }
 
 function Get-PoshixWslCommand {
@@ -60,74 +60,132 @@ function Get-PoshixWslCommand {
     return $wslCommand
 }
 
-function Resolve-PoshixDockerBackend {
-    [CmdletBinding()]
-    param()
+function New-PoshixDockerBackendResult {
+    param(
+        [string]$Mode,
+        [string]$Command,
+        [string[]]$BaseArguments = @(),
+        [string]$Distribution,
+        [bool]$Available,
+        [string]$Status,
+        [string]$Reason,
+        [string]$Remediation,
+        [string]$Version,
+        [object[]]$AttemptedBackends = @()
+    )
+    [PSCustomObject]@{
+        Mode = $Mode; Command = $Command; BaseArguments = $BaseArguments; Distribution = $Distribution
+        Available = $Available; Status = $Status; Reason = $Reason; Remediation = $Remediation
+        Version = $Version; Source = $Mode
+        AttemptedBackends = $AttemptedBackends
+    }
+}
 
+function Test-PoshixDockerBackend {
+    param([Parameter(Mandatory)]$Backend)
+    $output = & $Backend.Command @($Backend.BaseArguments + @('version', '--format', '{{.Server.Version}}')) 2>&1
+    $exitCode = $LASTEXITCODE
+    $reason = ($output | ForEach-Object { $_.ToString().Trim() } | Where-Object { $_ } | Select-Object -First 1)
+    $outputText = (($output -join ' ') -replace "`0", '')
+    [PSCustomObject]@{
+        Backend = $Backend; Available = ($exitCode -eq 0); ExitCode = $exitCode; Output = @($output)
+        Status = if ($exitCode -eq 0) { 'Available' } elseif ($outputText -match 'ACCESS_DENIED|Access is denied') { 'AccessDenied' } elseif ($outputText -match 'Cannot connect|connection|daemon|pipe') { 'DaemonUnavailable' } else { 'Unavailable' }
+        Reason = $reason
+    }
+}
+
+function Get-PoshixDockerBackendCandidates {
     $settings = Get-PoshixDockerSettings
     $mode = if ($settings.Mode) { $settings.Mode.ToLowerInvariant() } else { 'auto' }
     $nativeDocker = Get-PoshixDockerNativeCommand
     $wslCommand = Get-PoshixWslCommand
+    $candidates = @()
+    if ($mode -in @('native', 'auto') -and $nativeDocker) {
+        $candidates += New-PoshixDockerBackendResult -Mode 'Native' -Command $nativeDocker.Source -Available $false -Status 'Unverified'
+    }
+    if ($mode -in @('wsl', 'auto') -and $wslCommand) {
+        $baseArguments = @()
+        if ($settings.Distribution) { $baseArguments += @('-d', [string]$settings.Distribution) }
+        $baseArguments += @('--', 'docker')
+        $candidates += New-PoshixDockerBackendResult -Mode 'Wsl' -Command $wslCommand.Source -BaseArguments $baseArguments -Distribution $settings.Distribution -Available $false -Status 'Unverified'
+    }
+    return @($candidates)
+}
 
-    switch ($mode) {
-        'native' {
-            if ($nativeDocker) {
-                return [PSCustomObject]@{
-                    Mode = 'Native'
-                    Command = $nativeDocker.Source
-                    BaseArguments = @()
-                    Distribution = $null
-                }
-            }
+function Start-PoshixDockerBackendProbe {
+    <# .SYNOPSIS Begin the Docker backend health check without blocking shell startup. #>
+    [CmdletBinding()]
+    param()
+    if ($script:PoshixDockerBackendProbe.AsyncResult -or $script:PoshixDockerBackendProbe.Result) { return }
+    $candidates = @(Get-PoshixDockerBackendCandidates)
+    if ($candidates.Count -eq 0) { $script:PoshixDockerBackendProbe.Result = New-PoshixDockerBackendResult -Available $false -Status 'NotFound' -Reason 'No Docker CLI candidate was found.' -Remediation 'Install Docker or configure a WSL Docker backend.'; return }
+    $probeScript = {
+        param($ProbeCandidates)
+        foreach ($candidate in $ProbeCandidates) {
+            $output = & $candidate.Command @($candidate.BaseArguments + @('version', '--format', '{{.Server.Version}}')) 2>&1
+            $exitCode = $LASTEXITCODE
+            $text = (($output -join ' ') -replace "`0", '')
+            $status = if ($exitCode -eq 0) { 'Available' } elseif ($text -match 'ACCESS_DENIED|Access is denied') { 'AccessDenied' } elseif ($text -match 'Cannot connect|connection|daemon|pipe') { 'DaemonUnavailable' } else { 'Unavailable' }
+            [PSCustomObject]@{ Candidate = $candidate; Available = ($exitCode -eq 0); Status = $status; Reason = ($output | ForEach-Object ToString | Where-Object { $_ } | Select-Object -First 1); Version = if($exitCode -eq 0){($output|Select-Object -First 1).ToString().Trim()}else{$null} }
+            if ($exitCode -eq 0) { break }
         }
-        'wsl' {
-            if ($wslCommand) {
-                $baseArguments = @()
-                if ($settings.Distribution) {
-                    $baseArguments += @('-d', [string]$settings.Distribution)
-                }
-                $baseArguments += @('--', 'docker')
+    }
+    $pipeline=[PowerShell]::Create();[void]$pipeline.AddScript($probeScript).AddArgument($candidates)
+    $script:PoshixDockerBackendProbe.PowerShell=$pipeline
+    $script:PoshixDockerBackendProbe.AsyncResult=$pipeline.BeginInvoke()
+}
 
-                return [PSCustomObject]@{
-                    Mode = 'Wsl'
-                    Command = $wslCommand.Source
-                    BaseArguments = $baseArguments
-                    Distribution = $settings.Distribution
-                }
-            }
-        }
-        default {
-            if ($settings.Distribution -and $wslCommand) {
-                $baseArguments = @('-d', [string]$settings.Distribution, '--', 'docker')
-                return [PSCustomObject]@{
-                    Mode = 'Wsl'
-                    Command = $wslCommand.Source
-                    BaseArguments = $baseArguments
-                    Distribution = $settings.Distribution
-                }
-            }
+function Complete-PoshixDockerBackendProbe {
+    param([switch]$Wait)
+    $asyncResult=$script:PoshixDockerBackendProbe.AsyncResult;$pipeline=$script:PoshixDockerBackendProbe.PowerShell
+    if (-not $asyncResult) { return $script:PoshixDockerBackendProbe.Result }
+    if ($Wait -and -not $asyncResult.IsCompleted) { [void]$asyncResult.AsyncWaitHandle.WaitOne([TimeSpan]::FromSeconds(10)) }
+    if (-not $asyncResult.IsCompleted) { return $null }
+    try { $probes=@($pipeline.EndInvoke($asyncResult)) } catch { $probes=@() } finally { $pipeline.Dispose();$script:PoshixDockerBackendProbe.PowerShell=$null;$script:PoshixDockerBackendProbe.AsyncResult=$null }
+    if ($probes.Count -eq 0) { $script:PoshixDockerBackendProbe.Result = New-PoshixDockerBackendResult -Available $false -Status 'ProbeFailed' -Reason 'The asynchronous Docker probe failed without returning a result.' -Remediation 'Run poshix doctor again or invoke docker to retry synchronously.'; return $script:PoshixDockerBackendProbe.Result }
+    $attempts = @($probes | ForEach-Object { [PSCustomObject]@{ Mode = $_.Candidate.Mode; Command = $_.Candidate.Command; Distribution = $_.Candidate.Distribution; Status = $_.Status; Reason = $_.Reason } })
+    $healthy = $probes | Where-Object Available | Select-Object -First 1
+    if ($healthy) {
+        $candidate = $healthy.Candidate
+        $script:PoshixDockerBackendProbe.Result = New-PoshixDockerBackendResult -Mode $candidate.Mode -Command $candidate.Command -BaseArguments $candidate.BaseArguments -Distribution $candidate.Distribution -Available $true -Status 'Available' -Version $healthy.Version -AttemptedBackends $attempts
+    } else {
+        $last = $probes | Select-Object -Last 1
+        $script:PoshixDockerBackendProbe.Result = New-PoshixDockerBackendResult -Available $false -Status $last.Status -Reason $last.Reason -Remediation 'Ensure Docker is running, or configure Docker.Mode and Docker.Distribution.' -AttemptedBackends $attempts
+    }
+    return $script:PoshixDockerBackendProbe.Result
+}
 
-            if ($nativeDocker) {
-                return [PSCustomObject]@{
-                    Mode = 'Native'
-                    Command = $nativeDocker.Source
-                    BaseArguments = @()
-                    Distribution = $null
-                }
-            }
+function Resolve-PoshixDockerBackend {
+    [CmdletBinding()]
+    param([switch]$Wait)
 
-            if ($wslCommand) {
-                return [PSCustomObject]@{
-                    Mode = 'Wsl'
-                    Command = $wslCommand.Source
-                    BaseArguments = @('--', 'docker')
-                    Distribution = $null
-                }
-            }
+    $asyncResult = Complete-PoshixDockerBackendProbe -Wait:$Wait
+    if ($asyncResult) { return $asyncResult }
+    if ($script:PoshixDockerBackendProbe.AsyncResult) {
+        return New-PoshixDockerBackendResult -Available $false -Status 'Checking' -Reason 'Docker backend health check is still running.' -Remediation 'Retry shortly, or invoke docker to wait for the current check.'
+    }
+
+    if (-not $Wait) {
+        Start-PoshixDockerBackendProbe
+        if ($script:PoshixDockerBackendProbe.AsyncResult) { return New-PoshixDockerBackendResult -Available $false -Status 'Checking' -Reason 'Docker backend health check is running asynchronously.' -Remediation 'Retry shortly, or invoke docker to wait for the current check.' }
+        if ($script:PoshixDockerBackendProbe.Result) { return $script:PoshixDockerBackendProbe.Result }
+    }
+
+    $attempts = [System.Collections.Generic.List[object]]::new()
+    $candidates = @(Get-PoshixDockerBackendCandidates)
+
+    foreach ($candidate in $candidates) {
+        $probe = Test-PoshixDockerBackend -Backend $candidate
+        $attempts.Add([PSCustomObject]@{ Mode = $candidate.Mode; Command = $candidate.Command; Distribution = $candidate.Distribution; Status = $probe.Status; Reason = $probe.Reason })
+        if ($probe.Available) {
+            return New-PoshixDockerBackendResult -Mode $candidate.Mode -Command $candidate.Command -BaseArguments $candidate.BaseArguments -Distribution $candidate.Distribution -Available $true -Status 'Available' -AttemptedBackends @($attempts)
         }
     }
 
-    return $null
+    $reason = if ($attempts.Count) { $attempts[$attempts.Count - 1].Reason } else { 'No Docker CLI candidate was found.' }
+    $status = if ($attempts.Count) { $attempts[$attempts.Count - 1].Status } else { 'NotFound' }
+    $remediation = 'Ensure Docker is installed and running, or configure Docker.Mode and Docker.Distribution explicitly.'
+    return New-PoshixDockerBackendResult -Available $false -Status $status -Reason $reason -Remediation $remediation -AttemptedBackends @($attempts)
 }
 
 function Invoke-PoshixDockerPassthrough {
@@ -136,9 +194,9 @@ function Invoke-PoshixDockerPassthrough {
         [string[]]$Arguments
     )
 
-    $backend = Resolve-PoshixDockerBackend
-    if (-not $backend) {
-        Write-Warning "[poshix] Docker backend not available. Install docker or enable WSL and set Docker.Mode = 'Wsl'."
+    $backend = Resolve-PoshixDockerBackend -Wait
+    if (-not $backend.Available) {
+        Write-Warning "[poshix] Docker backend not available: $($backend.Reason) $($backend.Remediation)"
         return
     }
 
@@ -151,8 +209,8 @@ function Invoke-PoshixDockerCapture {
         [string[]]$Arguments
     )
 
-    $backend = Resolve-PoshixDockerBackend
-    if (-not $backend) {
+    $backend = Resolve-PoshixDockerBackend -Wait
+    if (-not $backend.Available) {
         return [PSCustomObject]@{
             Available = $false
             ExitCode = 127
@@ -371,11 +429,7 @@ function Get-DockerBackendInfo {
     param()
 
     $backend = Resolve-PoshixDockerBackend
-    if (-not $backend) {
-        Write-Warning "[poshix] Docker backend not available."
-        return
-    }
-
+    if (-not $backend.Available) { return $backend }
     $context = Get-PoshixDockerContextName
     $versionResult = Invoke-PoshixDockerCapture -Arguments @('version', '--format', '{{.Client.Version}}|{{.Server.Version}}')
     $clientVersion = $null
@@ -390,6 +444,11 @@ function Get-DockerBackendInfo {
         Mode = $backend.Mode
         Command = $backend.Command
         Distribution = $backend.Distribution
+        Available = $backend.Available
+        Status = $backend.Status
+        Reason = $backend.Reason
+        Remediation = $backend.Remediation
+        AttemptedBackends = $backend.AttemptedBackends
         Context = $context
         ClientVersion = $clientVersion
         ServerVersion = $serverVersion
@@ -408,7 +467,7 @@ function Get-DockerStatus {
     )
 
     $backend = Resolve-PoshixDockerBackend
-    if (-not $backend) {
+    if (-not $backend.Available) {
         if (-not $Quiet) {
             Write-Warning "[poshix] Docker backend not available."
         }
@@ -548,6 +607,12 @@ function Invoke-PoshixDockerComposeProxy {
 Set-Item -Path "function:global:Get-PoshixDockerSettings" -Value ${function:Get-PoshixDockerSettings}
 Set-Item -Path "function:global:Get-PoshixDockerNativeCommand" -Value ${function:Get-PoshixDockerNativeCommand}
 Set-Item -Path "function:global:Get-PoshixWslCommand" -Value ${function:Get-PoshixWslCommand}
+# The public resolver is global, so its helper chain must share that scope.
+Set-Item -Path "function:global:New-PoshixDockerBackendResult" -Value ${function:New-PoshixDockerBackendResult}
+Set-Item -Path "function:global:Test-PoshixDockerBackend" -Value ${function:Test-PoshixDockerBackend}
+Set-Item -Path "function:global:Get-PoshixDockerBackendCandidates" -Value ${function:Get-PoshixDockerBackendCandidates}
+Set-Item -Path "function:global:Complete-PoshixDockerBackendProbe" -Value ${function:Complete-PoshixDockerBackendProbe}
+Set-Item -Path "function:global:Start-PoshixDockerBackendProbe" -Value ${function:Start-PoshixDockerBackendProbe}
 Set-Item -Path "function:global:Resolve-PoshixDockerBackend" -Value ${function:Resolve-PoshixDockerBackend}
 Set-Item -Path "function:global:Invoke-PoshixDockerPassthrough" -Value ${function:Invoke-PoshixDockerPassthrough}
 Set-Item -Path "function:global:Invoke-PoshixDockerCapture" -Value ${function:Invoke-PoshixDockerCapture}
@@ -567,12 +632,8 @@ Set-Alias -Name dco -Value Invoke-DockerCompose -Scope Global
 Set-Alias -Name dps -Value Get-DockerStatus -Scope Global
 Set-Alias -Name dinfo -Value Get-DockerBackendInfo -Scope Global
 
-$nativeDocker = Get-PoshixDockerNativeCommand
-$settings = Get-PoshixDockerSettings
-$shouldProxyDocker = ($settings.Mode -eq 'Wsl') -or (-not $nativeDocker -and (Get-PoshixWslCommand))
-if ($shouldProxyDocker) {
-    Set-Item -Path "function:global:docker" -Value ${function:Invoke-PoshixDockerProxy}
-    Set-Item -Path "function:global:docker-compose" -Value ${function:Invoke-PoshixDockerComposeProxy}
-}
+Start-PoshixDockerBackendProbe
+Set-Item -Path "function:global:docker" -Value ${function:Invoke-PoshixDockerProxy}
+Set-Item -Path "function:global:docker-compose" -Value ${function:Invoke-PoshixDockerComposeProxy}
 
 Write-Verbose "[poshix] docker plugin loaded"

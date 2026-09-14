@@ -1,6 +1,6 @@
 {
   "Name": "windows-terminal",
-  "Description": "Windows Terminal settings integration for themes and tmux-like keybindings.",
-  "Commands": ["Set-WindowsTerminalTheme", "Set-WindowsTerminalTmuxKeybindings"],
+  "Description": "Windows Terminal settings integration, keybindings, and named workspace launching.",
+  "Commands": ["Set-WindowsTerminalTheme", "Set-WindowsTerminalTmuxKeybindings", "Save-PoshixTerminalWorkspace", "Get-PoshixTerminalWorkspace", "Start-PoshixTerminalWorkspace"],
   "Requires": []
 }

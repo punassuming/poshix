@@ -175,13 +175,19 @@
     ]
   },
   "History": {
-    "MaxSize": 4096,
-    "SavePath": "C:/Users/your-user/.poshix_history"
+    "MaxSize": 4096
   },
   "Startup": {
     "Verbose": false,
     "LoadHistory": true
   },
+  "Keybindings": {
+    "Enabled": true
+  },
+  "PackageManagers": [
+    "winget",
+    "scoop"
+  ],
   "Docker": {
     "Mode": "Auto",
     "Distribution": null,
@@ -252,6 +258,9 @@
   },
   "Plugins": [
     "completions",
+    "command-center",
+    "runtime-manager",
+    "agent-tools",
     "docker",
     "themes",
     "windows-terminal",

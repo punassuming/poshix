@@ -1,0 +1,7 @@
+{
+  "Name": "runtime-manager",
+  "Version": "0.1.0",
+  "Description": "Diagnose and explicitly install the local Windows development toolchain.",
+  "Author": "Poshix contributors",
+  "PoshixVersion": "0.1.0"
+}
