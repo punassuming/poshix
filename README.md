@@ -671,6 +671,11 @@ Save-PoshixConfig
 
 Requires [Starship](https://starship.rs) to be installed separately.
 
+The integration exports `POSHIX_DIRECTORY`, cached `POSHIX_GIT_BRANCH`,
+`POSHIX_GIT_DIRTY`, and `POSHIX_SESSION` values for Starship `env_var` modules. Git dirty-state checks
+run asynchronously so prompt rendering does not wait for `git status`.
+Starship's native modules remain responsible for Docker and Kubernetes context.
+
 #### Windows Terminal
 Windows Terminal settings integration for theme application and tmux-like pane keybindings.
 

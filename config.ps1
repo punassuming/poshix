@@ -85,6 +85,14 @@ function Get-PoshixDefaultConfig {
         Keybindings = @{
             Enabled = $true
         }
+        Starship = @{
+            ContextEnabled = $true
+            Directory = $true
+            DirectorySegments = 3
+            GitDirty = $true
+            GitDirtyCacheSeconds = 10
+            SessionContext = $true
+        }
         PackageManagers = @('winget', 'scoop')
         Prompt = @{
             Segments = @(

@@ -1,6 +1,9 @@
 {
   "Name": "starship",
   "Description": "Integrates the Starship prompt with poshix.",
-  "Commands": [],
+  "Commands": [
+    "Get-PoshixStarshipContext",
+    "Update-PoshixStarshipEnvironment"
+  ],
   "Requires": ["starship"]
 }

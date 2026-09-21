@@ -75,7 +75,11 @@ function Invoke-PoshixWslCliPassthrough {
         return
     }
 
-    & $wslCommand.Source @Arguments
+    if ($Arguments.Count -eq 0) {
+        & $wslCommand.Source
+    } else {
+        & $wslCommand.Source @Arguments
+    }
 }
 
 function ConvertFrom-PoshixWslDistributionText {
@@ -282,28 +286,21 @@ function Invoke-WslCommand {
 }
 
 function Invoke-PoshixWslProxy {
-    [CmdletBinding()]
-    param(
-        [Alias('d')]
-        [string]$Distribution,
+    # Use PowerShell's automatic $args collection rather than declared
+    # parameters. A native-command proxy must not let PowerShell interpret
+    # switches such as `-e` as abbreviated common parameters.
+    $nativeArguments = @($args)
 
-        [Alias('u')]
-        [string]$User,
-
-        [Parameter(Position = 0, ValueFromRemainingArguments)]
-        [string[]]$Arguments
-    )
-
-    if (-not $Distribution -and -not $User -and $Arguments.Count -gt 0) {
-        switch ($Arguments[0].ToLowerInvariant()) {
+    if ($nativeArguments.Count -gt 0) {
+        switch ($nativeArguments[0].ToString().ToLowerInvariant()) {
             'list' {
-                if ($Arguments.Count -gt 1 -and $Arguments[1].ToLowerInvariant() -eq 'online') {
+                if ($nativeArguments.Count -gt 1 -and $nativeArguments[1].ToString().ToLowerInvariant() -eq 'online') {
                     return Get-WslDistribution -Online
                 }
                 return Get-WslDistribution
             }
             'ls' {
-                if ($Arguments.Count -gt 1 -and $Arguments[1].ToLowerInvariant() -eq 'online') {
+                if ($nativeArguments.Count -gt 1 -and $nativeArguments[1].ToString().ToLowerInvariant() -eq 'online') {
                     return Get-WslDistribution -Online
                 }
                 return Get-WslDistribution
@@ -314,16 +311,11 @@ function Invoke-PoshixWslProxy {
         }
     }
 
-    $passthroughArguments = @()
-    if ($Distribution) {
-        $passthroughArguments += @('-d', $Distribution)
+    if ($nativeArguments.Count -eq 0) {
+        Invoke-PoshixWslCliPassthrough
+    } else {
+        Invoke-PoshixWslCliPassthrough -Arguments $nativeArguments
     }
-    if ($User) {
-        $passthroughArguments += @('-u', $User)
-    }
-    $passthroughArguments += $Arguments
-
-    Invoke-PoshixWslCliPassthrough -Arguments $passthroughArguments
 }
 
 Set-Item -Path "function:global:Get-PoshixWslCliCommand" -Value ${function:Get-PoshixWslCliCommand}

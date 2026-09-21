@@ -42,6 +42,6 @@ wslx -Distribution Ubuntu -User root -Command 'id'
 wslx -Distribution Ubuntu -WorkingDirectory C:\src\app -Capture -Command 'pwd'
 ```
 
-Any `wsl` invocation that does not match `list`, `ls`, or `status` is passed through directly to `wsl.exe`.
+Any `wsl` invocation that does not match `list`, `ls`, or `status` is passed through directly to `wsl.exe`. Native switches are left untouched, and running `wsl` without arguments starts the default distribution without adding an empty command argument.
 
 `-WorkingDirectory` accepts absolute Windows drive paths and Linux paths. `-Capture` returns structured output and exit status for automation; WSL access-denied failures are reported as status data instead of being confused with a missing distro.

@@ -43,7 +43,7 @@ function junctions()
       foreach ($link in $links)
       {
         $regex_pat = ".*>\s+(.+) \[(.+)\]"
-        $pair = @([regex]::matches($link, $regex_pat).groups[1..2]|%{$_.value})
+        $match = [regex]::Match($link, $regex_pat); if (-not $match.Success) { continue }; $pair = @($match.Groups[1].Value, $match.Groups[2].Value)
         $link_targets += @(,$pair)
       }
       return $link_targets

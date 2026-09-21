@@ -64,6 +64,28 @@ Describe 'WSL Plugin' {
             $status.Notes.Count | Should -Be 1
         }
     }
+
+    Context 'Native passthrough' {
+        BeforeEach {
+            $global:PoshixWslCapturedArguments = $null
+            Set-Item -Path Function:\global:Invoke-PoshixWslCliPassthrough -Value {
+                param([string[]]$Arguments = @())
+                $global:PoshixWslCapturedArguments = @($Arguments)
+            }
+        }
+
+        It 'Should launch the default distribution without an empty argument' {
+            wsl
+
+            $global:PoshixWslCapturedArguments.Count | Should -Be 0
+        }
+
+        It 'Should pass native switches through without common-parameter binding' {
+            wsl -e sh -lc 'printf ok'
+
+            $global:PoshixWslCapturedArguments | Should -Be @('-e', 'sh', '-lc', 'printf ok')
+        }
+    }
 }
 
 AfterAll {
@@ -71,5 +93,7 @@ AfterAll {
     Remove-Item Alias:\wslx -ErrorAction SilentlyContinue
     Remove-Item Alias:\wslinfo -ErrorAction SilentlyContinue
     Remove-Item Function:\global:wsl -ErrorAction SilentlyContinue
+    Remove-Item Function:\global:Invoke-PoshixWslCliPassthrough -ErrorAction SilentlyContinue
+    Remove-Variable PoshixWslCapturedArguments -Scope Global -ErrorAction SilentlyContinue
     Remove-Module poshix -Force -ErrorAction SilentlyContinue
 }
